@@ -23,7 +23,7 @@ def dot_abs(x, y):
 
 def norm1_minus_dot_abs(x, y):
   """ Product of first norms - dot product between absolute values """
-  return norm1(x) * norm2(y) - dot_abs(x, y)
+  return norm1(x) * norm1(y) - dot_abs(x, y)
 
 def get_custom_activation(KLips):
   """ Get custom sigmoid activation with given Lipschitz constant """
