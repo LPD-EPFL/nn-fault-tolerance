@@ -17,7 +17,7 @@ class RandomExperiment(Experiment):
     for i in range(1, len(self.N)):
       # creating w and b
       w = np.random.randn(self.N[i - 1], self.N[i]) / (self.N[i - 1]) * 5
-      b = np.random.randn(self.N[i]) / self.N[i] ** 2
+      b = np.random.randn(self.N[i]) / self.N[i]
       
       # adding them to the array
       self.W.append(w)

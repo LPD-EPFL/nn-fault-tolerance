@@ -39,11 +39,13 @@ def create_random_weight_model(Ns, KLips):
 
   # adding layers
   for i in range(len(Ns) - 1):
+    # is last layer (with output)?
+    is_last = i + 2 == len(Ns)
     
     # adding dense layer with sigmoid for hidden and linear for last layer
     model.add(Dense(Ns[i + 1], input_shape = (Ns[i], ),
                     kernel_initializer = 'random_normal',
-                    activation = get_custom_activation(KLips),
+                    activation = 'linear' if is_last else get_custom_activation(KLips),
                     bias_initializer = 'random_normal'))
 
   model.compile(loss=keras.losses.mean_squared_error,
@@ -62,16 +64,16 @@ def create_model(p_fails, layer_weights, layer_biases, KLips):
   
   # creating model
   model = Sequential()
-  
+ 
   # adding layers
-  for i, (p_fail, w, b) in enumerate(zip(p_fails, layer_weights, layer_biases)):
+  for i, (p_fail, w, b) in enumerate(zip(p_fails[1:] + [0], layer_weights, layer_biases)):
     # is last layer (with output)?
-    is_last = i + 1 == len(p_fails)
+    is_last = i + 1 == len(layer_weights)
     
     # adding dense layer with sigmoid for hidden and linear for last layer
     model.add(Dense(w.shape[1], input_shape = (w.shape[0], ),
                     kernel_initializer = Constant(w),
-                    activation = get_custom_activation(KLips),
+                    activation = 'linear' if is_last else get_custom_activation(KLips),
                     bias_initializer = Constant(b)))
     
     # adding dropout to all layers but last
