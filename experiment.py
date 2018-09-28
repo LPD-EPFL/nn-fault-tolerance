@@ -61,13 +61,13 @@ class Experiment():
   
   def get_max_f(self, layer, func):
     """ Maximize func(weights) over neurons in layer """
-    wb = self.get_wb(layer)
+    wb = self.W[layer]
     res = [func(w_neuron) for w_neuron in wb.T]
     return np.max(res)
   
   def get_max_f_xy(self, layer, func, same_only = False):
     """ Maximize func(w1, w2) over neurons in layer """
-    wb = self.get_wb(layer)
+    wb = self.W[layer]
     if same_only: res = [func(w_neuron, w_neuron) for w_neuron in wb.T]
     else: res = [func(w_neuron1, w_neuron2) for w_neuron1 in wb.T for w_neuron2 in wb.T]
     return np.max(res)
