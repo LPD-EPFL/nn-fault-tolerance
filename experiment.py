@@ -22,7 +22,7 @@ class Experiment():
     assert(len(N) == len(P) + 2)
       
     # saving P, last layer has zero probability of failure
-    self.P = P + [0.0]
+    self.P = [0.0] + P
     
     # maximal value of output from neuron (1 since using sigmoid)
     self.C = 1.
@@ -88,7 +88,7 @@ class Experiment():
     EDelta2Arr = [0]
     
     # Loop over layers
-    for layer in range(len(self.W)):
+    for layer in range(1, len(self.W)):
       is_last = layer + 1 == len(self.W)
       
       # probability of failure of a single neuron
