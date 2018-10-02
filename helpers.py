@@ -9,7 +9,7 @@ from functools import partial
 
 def PermanentDropout(p_fail):
   """ Make dropout work when using predict(), not only on train """
-  return Lambda(lambda x: K.dropout(x, level=p_fail))
+  return Lambda(lambda x: K.dropout(x, level=p_fail) * (1 - p_fail))
 
 # calculate first norm
 norm1 = partial(np.linalg.norm, ord = 1)
