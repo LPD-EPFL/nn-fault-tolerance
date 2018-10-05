@@ -3,7 +3,7 @@ import numpy as np
 from helpers import *
 
 class ConstantExperiment(Experiment):
-  def __init__(self, N, P, KLips, W, B, do_print = False):
+  def __init__(self, N, P, KLips, W, B, activation = 'sigmoid', do_print = False):
     """ Fill in the weights and initialize models """
     Experiment.__init__(self, N, P, KLips, do_print)
     
@@ -14,10 +14,10 @@ class ConstantExperiment(Experiment):
     self.B = B
     
     # creating "crashing" model
-    self.model = create_model(self.P, self.W, self.B, self.K)
+    self.model = create_model(self.P, self.W, self.B, self.K, activation)
     
     # creating correct model
-    self.model_no_dropout = create_model([0] * len(self.P), self.W, self.B, self.K)
+    self.model_no_dropout = create_model([0] * len(self.P), self.W, self.B, self.K, activation)
     
   def get_inputs(self, how_many):
     return np.random.randn(how_many, self.N[0])

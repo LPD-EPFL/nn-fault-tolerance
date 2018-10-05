@@ -25,13 +25,16 @@ def norm1_minus_dot_abs(x, y):
   """ Product of first norms - dot product between absolute values """
   return norm1(x) * norm1(y) - dot_abs(x, y)
 
-def get_custom_activation(KLips):
+def get_custom_activation(KLips, func):
   """ Get custom sigmoid activation with given Lipschitz constant """
   def custom_activation(x):
-    return K.sigmoid(4 * KLips * x)
+    if func == 'sigmoid':
+        return K.sigmoid(4 * KLips * x)
+    elif func == 'relu':
+        return K.relu(KLips * x)
   return custom_activation
 
-def create_random_weight_model(Ns, KLips):
+def create_random_weight_model(Ns, KLips, func = 'sigmoid'):
   """ Create some simple network with given dropout prob, weights and Lipschitz coefficient for sigmoid """
   
   # creating model
@@ -45,7 +48,7 @@ def create_random_weight_model(Ns, KLips):
     # adding dense layer with sigmoid for hidden and linear for last layer
     model.add(Dense(Ns[i + 1], input_shape = (Ns[i], ),
                     kernel_initializer = 'random_normal',
-                    activation = 'linear' if is_last else get_custom_activation(KLips),
+                    activation = 'linear' if is_last else get_custom_activation(KLips, func),
                     bias_initializer = 'random_normal'))
 
   model.compile(loss=keras.losses.mean_squared_error,
@@ -55,7 +58,7 @@ def create_random_weight_model(Ns, KLips):
   #model.summary()
   return model
 
-def create_model(p_fails, layer_weights, layer_biases, KLips):
+def create_model(p_fails, layer_weights, layer_biases, KLips, func = 'sigmoid'):
   """ Create some simple network with given dropout prob, weights and Lipschitz coefficient for sigmoid """
   
   # checking if length matches
@@ -73,7 +76,7 @@ def create_model(p_fails, layer_weights, layer_biases, KLips):
     # adding dense layer with sigmoid for hidden and linear for last layer
     model.add(Dense(w.shape[1], input_shape = (w.shape[0], ),
                     kernel_initializer = Constant(w),
-                    activation = 'linear' if is_last else get_custom_activation(KLips),
+                    activation = 'linear' if is_last else get_custom_activation(KLips, func),
                     bias_initializer = Constant(b)))
     
     # adding dropout to all layers but last

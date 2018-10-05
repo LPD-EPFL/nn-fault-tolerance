@@ -5,7 +5,7 @@ from matplotlib import pyplot as plt
 
 class Experiment():
   """ One experiment on neuron crash, contains a fixed weights network """
-  def __init__(self, N, P, KLips, do_print = False):
+  def __init__(self, N, P, KLips, activation = 'sigmoid', do_print = False):
     """ Initialize using given number of neurons per layer N (array), probability of failure P, and the Lipschitz coefficient """
     
     if do_print:
@@ -29,6 +29,9 @@ class Experiment():
     
     # saving K
     self.K = KLips
+
+    # saving activation
+    self.activation = activation
     
   def predict_no_dropout(self, data):
     """ Get correct network output for a given input vector """
