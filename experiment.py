@@ -74,7 +74,10 @@ class Experiment():
     if same_only: res = [func(w_neuron, w_neuron) for w_neuron in wb.T]
     else: res = [func(w_neuron1, w_neuron2) for w_neuron1 in wb.T for w_neuron2 in wb.T]
     return np.max(res)
-  
+ 
+  def get_C(self, layer):
+   return self.C if self.activation == 'sigmoid' else self.C[layer - 1]
+ 
   def get_mean_std_error(self):
     """ Get theoretical bound for mean and std of error given weights """
     
@@ -96,10 +99,9 @@ class Experiment():
       
       # probability of failure of a single neuron
       p_l = self.P[layer]
-
-      # obtaining C
-      C = self.C if self.activation == 'sigmoid' else self.C[layer - 1]
-      
+     
+      C = self.get_C(layer)
+ 
       # maximal 1-norm of weights
       w_1_norm = self.get_max_f(layer, norm1)
       
@@ -126,11 +128,12 @@ class Experiment():
     # Debug output
     #print(EDeltaArr)
     #print(EDelta2Arr)
+    self.EDeltaArr = EDeltaArr
     
     # Returning mean and sqrt(std^2)
     return EDelta, EDelta2 ** 0.5
   
-  def run(self, repetitions = 10000, inputs = 50, do_plot = True, do_print = True, do_tqdm = True, randn = None):
+  def run(self, repetitions = 10000, inputs = 50, do_plot = True, do_print = True, do_tqdm = True, randn = None, inputs_update = None):
     """ Run a single experiment with a fixed network """
 
     # Creating input data
@@ -140,6 +143,10 @@ class Experiment():
         self.update_C(data)
         if randn:
             self.update_C(np.random.randn(randn, self.N[0]))
+        if inputs_update:
+            self.update_C(self.get_inputs(inputs_update))
+
+    if inputs == 0: return (0, 0, 0, 0, 0)
 
     # Computing true values
     trues = [self.predict_no_dropout(value) for value in data]
@@ -172,3 +179,26 @@ class Experiment():
 
     # Returning summary
     return mean_exp, std_exp, mean_bound, std_bound, np.std(trues)
+
+  # net with L hidden layers:
+  # input layer 0
+  # output layer L+1
+  # hidden 1...L
+  # EDelta1 -- for 1 hidden layer, therefore it's error for L+1 th layer
+  # gradient_error
+  def dEDelta_dW(self, top_index, bot_index):
+      # top_index (1..L) for EDelta
+      # bot_index (2..L+1) for w
+      K = self.K
+      C = self.get_C(top_index - 1)
+      p = self.P[top_index]
+      w = self.W[top_index]
+      idx = np.argmax(np.linalg.norm(np.abs(w), ord = 1, axis = 0))
+      wmat = np.zeros((self.N[bot_index - 1], self.N[bot_index]))
+      wmat[idx, :] = w[idx, :]
+      if top_index + 1 == bot_index:
+          return (p * C + K * (1 - p) * self.EDeltaArr[top_index - 1]) * np.sign(wmat)
+      elif top_index + 1 < bot_index:
+          return np.zeros((self.N[bot_index - 1], self.N[bot_index]))
+      else:
+          return self.dEDelta_dW(top_index - 1, bot_index) * K * (1 - p) * np.linalg.norm(np.abs(w[idx, :]), ord = 1)
