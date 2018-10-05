@@ -21,11 +21,11 @@ class Experiment():
     # checking if the length is correct. Last and first layers cannot have failures so P is shorter than N
     assert(len(N) == len(P) + 2)
       
-    # saving P, last layer has zero probability of failure
+    # saving P, first layer has zero probability of failure
     self.P = [0.0] + P
     
     # maximal value of output from neuron (1 since using sigmoid)
-    self.C = 1.
+    self.C = 1. if activation == 'sigmoid' else np.zeros(len(N) - 2)
     
     # saving K
     self.K = KLips
@@ -96,6 +96,9 @@ class Experiment():
       
       # probability of failure of a single neuron
       p_l = self.P[layer]
+
+      # obtaining C
+      C = self.C if self.activation == 'sigmoid' else self.C[layer - 1]
       
       # maximal 1-norm of weights
       w_1_norm = self.get_max_f(layer, norm1)
@@ -107,14 +110,14 @@ class Experiment():
       beta = self.get_max_f_xy(layer, norm1_minus_dot_abs, same_only = is_last)
       
       # a, b from article for EDelta2 (note that old EDelta is used)
-      a = self.C ** 2 * p_l * (alpha + p_l * beta) + 2 * self.K * self.C * p_l * (1 - p_l) * beta * EDelta
+      a = C ** 2 * p_l * (alpha + p_l * beta) + 2 * self.K * C * p_l * (1 - p_l) * beta * EDelta
       b = self.K ** 2 * (1 - p_l) * (alpha + (1 - p_l) * beta)
       
       # Updating EDelta2
       EDelta2 = a + b * EDelta2
       
       # Updating EDelta
-      EDelta = p_l * w_1_norm * self.C + self.K * w_1_norm * (1 - p_l) * EDelta
+      EDelta = p_l * w_1_norm * C + self.K * w_1_norm * (1 - p_l) * EDelta
       
       # Adding new values to arrays
       EDeltaArr.append(EDelta)
@@ -127,11 +130,16 @@ class Experiment():
     # Returning mean and sqrt(std^2)
     return EDelta, EDelta2 ** 0.5
   
-  def run(self, repetitions = 10000, inputs = 50, do_plot = True, do_print = True, do_tqdm = True):
+  def run(self, repetitions = 10000, inputs = 50, do_plot = True, do_print = True, do_tqdm = True, randn = None):
     """ Run a single experiment with a fixed network """
 
     # Creating input data
     data = self.get_inputs(inputs)
+
+    if self.activation == 'relu':
+        self.update_C(data)
+        if randn:
+            self.update_C(np.random.randn(randn, self.N[0]))
 
     # Computing true values
     trues = [self.predict_no_dropout(value) for value in data]
