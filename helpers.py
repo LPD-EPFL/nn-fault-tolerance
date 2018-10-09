@@ -5,6 +5,7 @@ from keras.models import Sequential
 from keras.layers import Dense, Dropout, Flatten
 from keras.layers.core import Lambda
 from keras.initializers import Constant
+from keras.regularizers import l2
 from functools import partial
 
 def PermanentDropout(p_fail):
@@ -34,7 +35,30 @@ def get_custom_activation(KLips, func):
         return K.relu(KLips * x)
   return custom_activation
 
-def create_random_weight_model(Ns, KLips, func = 'sigmoid'):
+# errors for kernel reg
+errors = {-1: 0}
+
+def get_kernel_reg(layer, is_last, C = 1., p = 0.1, KLips = 1., lambda_ = 0.1):
+    """ Get a Erf regularizer for layer"""
+    
+    def kernel_reg(w, layer = layer, is_last = is_last, C_layer = C, p_layer = p, KLips = KLips, lambda_ = lambda_):
+        """ Regularizer for a layer """
+        # Maximal 1-norm over output neuron
+        wnorm1 = K.max(K.sum(K.abs(w), axis = 0))
+        
+        # error (induction)
+        error = (p_layer * C_layer + KLips * (1 - p_layer) * errors[layer - 1]) * wnorm1
+        
+        # saving the error for the next call
+        errors[layer] = error
+        
+        # returning the error scaled
+        return error * lambda_ if is_last else 0
+    
+    # returning the function
+    return kernel_reg
+
+def create_random_weight_model(Ns, KLips, func = 'sigmoid', reg_type = 0, reg_coeff = 0.01):
   """ Create some simple network with given dropout prob, weights and Lipschitz coefficient for sigmoid """
   
   # creating model
@@ -45,17 +69,26 @@ def create_random_weight_model(Ns, KLips, func = 'sigmoid'):
     # is last layer (with output)?
     is_last = i + 2 == len(Ns)
     
+    if reg_type == 'l2':
+        regularizer = l2(reg_coeff)
+    elif reg_type  == 'delta':
+        regularizer = get_kernel_reg(i, is_last, KLips = KLips, lambda_ = reg_coeff)
+    elif reg_type == 0:
+        regularizer = lambda w : 0
+    
     # adding dense layer with sigmoid for hidden and linear for last layer
     model.add(Dense(Ns[i + 1], input_shape = (Ns[i], ),
                     kernel_initializer = 'random_normal',
                     activation = 'linear' if is_last else get_custom_activation(KLips, func),
-                    bias_initializer = 'random_normal'))
+                    bias_initializer = 'random_normal',
+                    kernel_regularizer = regularizer
+                   ))
 
-  model.compile(loss=keras.losses.mean_squared_error,
-              optimizer=keras.optimizers.Adadelta(),
-              metrics=['accuracy'])
+  model.compile(loss=keras.losses.mean_absolute_error,
+              optimizer=keras.optimizers.SGD(),
+              metrics=['accuracy', 'mean_absolute_error'])
 
-  #model.summary()
+  model.summary()
   return model
 
 def create_model(p_fails, layer_weights, layer_biases, KLips, func = 'sigmoid'):

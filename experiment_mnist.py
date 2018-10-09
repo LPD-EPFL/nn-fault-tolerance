@@ -5,7 +5,7 @@ from matplotlib import pyplot as plt
 from keras.datasets import mnist
 
 class MNISTExperiment(ConstantExperiment):
-  def __init__(self, N, P, KLips, epochs = 20, activation = 'sigmoid', do_print = False):
+  def __init__(self, N, P, KLips, epochs = 20, activation = 'sigmoid', reg_type = 'delta', reg_coeff = 0.01, do_print = False):
     N = [28 ** 2] + N + [10]
       
     """ Fill in the weights and initialize models """
