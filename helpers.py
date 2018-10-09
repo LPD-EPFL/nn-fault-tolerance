@@ -38,6 +38,7 @@ def get_custom_activation(KLips, func):
 # errors for kernel reg
 errors = {-1: 0}
 
+# todo: support for updateable C
 def get_kernel_reg(layer, is_last, C = 1., p = 0.1, KLips = 1., lambda_ = 0.1):
     """ Get a Erf regularizer for layer"""
     
