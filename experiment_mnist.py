@@ -3,6 +3,7 @@ from helpers import *
 import numpy as np
 from matplotlib import pyplot as plt
 from keras.datasets import mnist
+import pickle
 
 class MNISTExperiment(ConstantExperiment):
   def __init__(self, N, P, KLips, epochs = 20, activation = 'sigmoid', reg_type = 0, reg_coeff = 0.01, train_dropout = None, do_print = False):
@@ -17,10 +18,10 @@ class MNISTExperiment(ConstantExperiment):
     self.y_test = np.array([[1 if i == digit else 0 for i in range(10)] for digit in y_test.flatten()])
     
     if not train_dropout:
-        train_dropout = [0] * (len(N) - 1)
+        train_dropout = [0] * len(N)
 
     model = create_random_weight_model(N, train_dropout, KLips, activation, reg_type = reg_type, reg_coeff = reg_coeff)
-    history = model.fit(self.x_train, self.y_train, batch_size = 10000, epochs = epochs, verbose = 0, validation_data = (self.x_test, self.y_test))
+    history = model.fit(self.x_train, self.y_train, batch_size = 10000, epochs = epochs, verbose = do_print, validation_data = (self.x_test, self.y_test))
 
     if do_print:
       plt.figure()

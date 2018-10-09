@@ -90,9 +90,9 @@ def create_random_weight_model(Ns, p_fails, KLips, func = 'sigmoid', reg_type = 
     if not is_last and p_fail > 0:
       model.add(PermanentDropout(p_fail))
 
-  model.compile(loss=keras.losses.mean_absolute_error,
-              optimizer=keras.optimizers.SGD(),
-              metrics=['accuracy', 'mean_absolute_error'])
+  model.compile(loss=keras.losses.mean_squared_error,
+              optimizer=keras.optimizers.Adadelta(),
+              metrics=['accuracy', 'mean_squared_error'])
 
   model.summary()
   return model
