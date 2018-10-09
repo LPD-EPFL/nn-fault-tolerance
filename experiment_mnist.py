@@ -5,7 +5,7 @@ from matplotlib import pyplot as plt
 from keras.datasets import mnist
 
 class MNISTExperiment(ConstantExperiment):
-  def __init__(self, N, P, KLips, epochs = 20, activation = 'sigmoid', reg_type = 'delta', reg_coeff = 0.01, do_print = False):
+  def __init__(self, N, P, KLips, epochs = 20, activation = 'sigmoid', reg_type = 0, reg_coeff = 0.01, train_dropout = None, do_print = False):
     N = [28 ** 2] + N + [10]
       
     """ Fill in the weights and initialize models """
@@ -16,7 +16,10 @@ class MNISTExperiment(ConstantExperiment):
     self.y_train = np.array([[1 if i == digit else 0 for i in range(10)] for digit in y_train.flatten()])
     self.y_test = np.array([[1 if i == digit else 0 for i in range(10)] for digit in y_test.flatten()])
     
-    model = create_random_weight_model(N, KLips, activation, reg_type = reg_type, reg_coeff = reg_coeff)
+    if not train_dropout:
+        train_dropout = [0] * (len(N) - 1)
+
+    model = create_random_weight_model(N, train_dropout, KLips, activation, reg_type = reg_type, reg_coeff = reg_coeff)
     history = model.fit(self.x_train, self.y_train, batch_size = 10000, epochs = epochs, verbose = 0, validation_data = (self.x_test, self.y_test))
 
     if do_print:

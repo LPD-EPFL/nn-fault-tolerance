@@ -59,7 +59,7 @@ def get_kernel_reg(layer, is_last, C = 1., p = 0.1, KLips = 1., lambda_ = 0.1):
     # returning the function
     return kernel_reg
 
-def create_random_weight_model(Ns, KLips, func = 'sigmoid', reg_type = 0, reg_coeff = 0.01):
+def create_random_weight_model(Ns, p_fails, KLips, func = 'sigmoid', reg_type = 0, reg_coeff = 0.01):
   """ Create some simple network with given dropout prob, weights and Lipschitz coefficient for sigmoid """
   
   # creating model
@@ -69,6 +69,7 @@ def create_random_weight_model(Ns, KLips, func = 'sigmoid', reg_type = 0, reg_co
   for i in range(len(Ns) - 1):
     # is last layer (with output)?
     is_last = i + 2 == len(Ns)
+    p_fail = p_fails[1 + i]
     
     if reg_type == 'l2':
         regularizer = l2(reg_coeff)
@@ -84,6 +85,10 @@ def create_random_weight_model(Ns, KLips, func = 'sigmoid', reg_type = 0, reg_co
                     bias_initializer = 'random_normal',
                     kernel_regularizer = regularizer
                    ))
+
+    # adding dropout to all layers but last
+    if not is_last and p_fail > 0:
+      model.add(PermanentDropout(p_fail))
 
   model.compile(loss=keras.losses.mean_absolute_error,
               optimizer=keras.optimizers.SGD(),
