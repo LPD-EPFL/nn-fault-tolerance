@@ -154,9 +154,9 @@ class Experiment():
     # Running the experiment
     tqdm_ = tqdm if do_tqdm else (lambda x : x)
     errors = [self.get_error(value, repetitions = repetitions) for value in tqdm_(data)]
-    
+ 
     # Computing Maximal Absolute Mean/Std Error over 
-    errors_abs = np.max(np.abs(errors), axis = 2)
+    errors_abs = np.abs(errors)
     means = np.mean(errors_abs, axis = 1)
     stds = np.std(errors_abs, axis = 1)
     mean_exp = np.max(means)
