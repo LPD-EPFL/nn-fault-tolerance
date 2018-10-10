@@ -5,7 +5,7 @@ from keras.models import Sequential
 from keras.layers import Dense, Dropout, Flatten
 from keras.layers.core import Lambda
 from keras.initializers import Constant
-from keras.regularizers import l2
+from keras.regularizers import l1, l2
 from functools import partial
 
 def PermanentDropout(p_fail):
@@ -73,6 +73,8 @@ def create_random_weight_model(Ns, p_fails, KLips, func = 'sigmoid', reg_type = 
     
     if reg_type == 'l2':
         regularizer = l2(reg_coeff)
+    elif reg_type == 'l1':
+        regularizer = l1(reg_coeff)
     elif reg_type  == 'delta':
         regularizer = get_kernel_reg(i, is_last, KLips = KLips, lambda_ = reg_coeff)
     elif reg_type == 0:
