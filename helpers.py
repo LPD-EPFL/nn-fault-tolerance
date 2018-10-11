@@ -59,7 +59,7 @@ def get_kernel_reg(layer, is_last, C = 1., p = 0.1, KLips = 1., lambda_ = 0.1):
     # returning the function
     return kernel_reg
 
-def create_random_weight_model(Ns, p_fails, KLips, func = 'sigmoid', reg_type = 0, reg_coeff = 0.01):
+def create_random_weight_model(Ns, p_fails, KLips, func = 'sigmoid', reg_type = 0, reg_coeff = 0.01, C_arr = []):
   """ Create some simple network with given dropout prob, weights and Lipschitz coefficient for sigmoid """
   
   # creating model
@@ -70,13 +70,14 @@ def create_random_weight_model(Ns, p_fails, KLips, func = 'sigmoid', reg_type = 
     # is last layer (with output)?
     is_last = i + 2 == len(Ns)
     p_fail = p_fails[1 + i]
+    C_arr += [K.variable(1.0 if func == 'sigmoid' else 0.0)]
     
     if reg_type == 'l2':
         regularizer = l2(reg_coeff)
     elif reg_type == 'l1':
         regularizer = l1(reg_coeff)
     elif reg_type  == 'delta':
-        regularizer = get_kernel_reg(i, is_last, KLips = KLips, lambda_ = reg_coeff)
+        regularizer = get_kernel_reg(i, is_last, KLips = KLips, lambda_ = reg_coeff, C = C_arr[i])
     elif reg_type == 0:
         regularizer = lambda w : 0
     

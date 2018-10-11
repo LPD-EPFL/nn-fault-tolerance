@@ -2,11 +2,13 @@ from experiment_constant import *
 from helpers import *
 import numpy as np
 from matplotlib import pyplot as plt
+from keras import backend as K
 from keras.datasets import mnist
 import pickle
+from tqdm import tqdm
 
 class MNISTExperiment(ConstantExperiment):
-  def __init__(self, N, P, KLips, epochs = 20, activation = 'sigmoid', reg_type = 0, reg_coeff = 0.01, train_dropout = None, do_print = False):
+  def __init__(self, N, P, KLips, epochs = 20, activation = 'sigmoid', update_C_inputs = 1000, reg_type = 0, reg_coeff = 0.01, train_dropout = None, do_print = False):
     N = [28 ** 2] + N + [10]
       
     """ Fill in the weights and initialize models """
@@ -20,8 +22,18 @@ class MNISTExperiment(ConstantExperiment):
     if not train_dropout:
         train_dropout = [0] * len(N)
 
-    model = create_random_weight_model(N, train_dropout, KLips, activation, reg_type = reg_type, reg_coeff = reg_coeff)
-    history = model.fit(self.x_train, self.y_train, batch_size = 10000, epochs = epochs, verbose = do_print, validation_data = (self.x_test, self.y_test))
+    self.C_arr = []
+
+    self.activation = activation
+
+    model = create_random_weight_model(N, train_dropout, KLips, activation, reg_type = reg_type, reg_coeff = reg_coeff, C_arr = self.C_arr)
+    Experiment.__init__(self, N, P, KLips, activation, do_print = False)
+    self.create_max_per_layer()
+
+    tqdm_ = tqdm if do_print else lambda x : x
+    for i in tqdm_(range(epochs)):
+        self.update_C_train(update_C_inputs)
+        model.fit(self.x_train, self.y_train, batch_size = 10000, epochs = 1, validation_data = (self.x_test, self.y_test))
 
     if do_print:
       plt.figure()
@@ -43,3 +55,6 @@ class MNISTExperiment(ConstantExperiment):
     x = np.vstack((self.x_train, self.x_test))
     indices = np.random.choice(x.shape[0], how_many)
     return x[indices, :]
+  def update_C_train(self, inputs):
+    self.update_C(self.get_inputs(inputs))
+    [K.set_value(item, value) for item, value in zip(self.C_arr, self.C + [0])]
