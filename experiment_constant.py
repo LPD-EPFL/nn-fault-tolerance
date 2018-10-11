@@ -26,6 +26,9 @@ class ConstantExperiment(Experiment):
   def update_C(self, inputs):
     if self.activation == 'relu':
         self.C = np.max([self.C, self.max_per_layer(inputs)], axis = 0)
+
+  def reset_C(self):
+    self.C = np.zeros(np.array(self.C).shape)
     
   def get_inputs(self, how_many):
     return np.random.randn(how_many, self.N[0])

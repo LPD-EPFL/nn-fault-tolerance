@@ -27,18 +27,24 @@ class MNISTExperiment(ConstantExperiment):
     self.activation = activation
 
     model = create_random_weight_model(N, train_dropout, KLips, activation, reg_type = reg_type, reg_coeff = reg_coeff, C_arr = self.C_arr)
+    self.model_no_dropout = model
     Experiment.__init__(self, N, P, KLips, activation, do_print = False)
     self.create_max_per_layer()
 
     tqdm_ = tqdm if do_print else lambda x : x
+    history = []
     for i in tqdm_(range(epochs)):
+        self.reset_C()
         self.update_C_train(update_C_inputs)
-        model.fit(self.x_train, self.y_train, batch_size = 10000, epochs = 1, validation_data = (self.x_test, self.y_test))
+        history += [model.fit(self.x_train, self.y_train, verbose = 0, batch_size = 10000, epochs = 1, validation_data = (self.x_test, self.y_test))]
+
+    val_acc = [value for epoch in history for value in epoch.history['val_acc']]
+    acc = [value for epoch in history for value in epoch.history['acc']]
 
     if do_print:
       plt.figure()
-      plt.plot(history.history['val_acc'], label = 'Validation accuracy')
-      plt.plot(history.history['acc'], label = 'Accuracy')
+      plt.plot(val_acc, label = 'Validation accuracy')
+      plt.plot(acc, label = 'Accuracy')
       plt.legend()
       plt.show()
     
