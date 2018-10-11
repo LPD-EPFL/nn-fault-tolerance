@@ -36,12 +36,13 @@ class MNISTExperiment(ConstantExperiment):
     tqdm_ = tqdm if do_print else lambda x : x
     history = []
     for i in tqdm_(range(epochs)):
-        self.reset_C()
-        self.update_C_train(update_C_inputs)
-        self.C_history += [self.C]
+        if activation == 'relu':
+            self.reset_C()
+            self.update_C_train(update_C_inputs)
+            self.C_history += [self.C]
         history += [model.fit(self.x_train, self.y_train, verbose = 0, batch_size = 10000, epochs = 1, validation_data = (self.x_test, self.y_test))]
 
-    if do_print:
+    if do_print and activation == 'relu':
         plt.figure()
         plt.title('C during training')
         plt.xlabel('Epoch')
@@ -69,7 +70,15 @@ class MNISTExperiment(ConstantExperiment):
       
     # creating "crashing" and "normal" models
     ConstantExperiment.__init__(self, N, P, KLips, W, B, activation, do_print)
-    
+  def get_accuracy(self, inputs = 10000, repetitions = 10000, tqdm_ = lambda x : x):
+    x = np.vstack((self.x_train, self.x_test))
+    y = np.vstack((self.y_train, self.y_test))
+    indices = np.random.choice(x.shape[0], inputs)
+    data = x[indices, :]
+    answers = np.argmax(y[indices], axis = 1)
+    predictions = [np.argmax(self.predict(inp, repetitions = repetitions), axis = 1) for inp in tqdm_(data)]
+    correct = [np.sum(pred == ans) for pred, ans in zip(predictions, answers)]
+    return np.sum(correct) / (inputs * repetitions)
   def get_inputs(self, how_many):
     x = np.vstack((self.x_train, self.x_test))
     indices = np.random.choice(x.shape[0], how_many)
