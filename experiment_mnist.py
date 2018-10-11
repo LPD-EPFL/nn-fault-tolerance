@@ -31,12 +31,25 @@ class MNISTExperiment(ConstantExperiment):
     Experiment.__init__(self, N, P, KLips, activation, do_print = False)
     self.create_max_per_layer()
 
+    self.C_history = []
+
     tqdm_ = tqdm if do_print else lambda x : x
     history = []
     for i in tqdm_(range(epochs)):
         self.reset_C()
         self.update_C_train(update_C_inputs)
+        self.C_history += [self.C]
         history += [model.fit(self.x_train, self.y_train, verbose = 0, batch_size = 10000, epochs = 1, validation_data = (self.x_test, self.y_test))]
+
+    if do_print:
+        plt.figure()
+        plt.title('C during training')
+        plt.xlabel('Epoch')
+        plt.ylabel('Error per layer')
+        for layer, data in enumerate(zip(*self.C_history)):
+            plt.plot(data, label = 'Layer %d' % (layer + 1))
+        plt.legend()
+        plt.show()
 
     val_acc = [value for epoch in history for value in epoch.history['val_acc']]
     acc = [value for epoch in history for value in epoch.history['acc']]
