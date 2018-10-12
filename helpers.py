@@ -98,7 +98,8 @@ def create_random_weight_model(Ns, p_fails, KLips, func = 'sigmoid', reg_type = 
               metrics=['accuracy', 'mean_squared_error'])
 
   model.summary()
-  return model
+  last = len(Ns) - 2
+  return model, errors[last] if last in errors else None
 
 def create_model(p_fails, layer_weights, layer_biases, KLips, func = 'sigmoid'):
   """ Create some simple network with given dropout prob, weights and Lipschitz coefficient for sigmoid """

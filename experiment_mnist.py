@@ -6,6 +6,7 @@ from keras import backend as K
 from keras.datasets import mnist
 import pickle
 from tqdm import tqdm
+from functools import partial
 
 class MNISTExperiment(ConstantExperiment):
   def __init__(self, N, P, KLips, epochs = 20, activation = 'sigmoid', update_C_inputs = 1000, reg_type = 0, reg_coeff = 0.01, train_dropout = None, do_print = False):
@@ -26,7 +27,7 @@ class MNISTExperiment(ConstantExperiment):
 
     self.activation = activation
 
-    model = create_random_weight_model(N, train_dropout, KLips, activation, reg_type = reg_type, reg_coeff = reg_coeff, C_arr = self.C_arr)
+    model, self.reg = create_random_weight_model(N, train_dropout, KLips, activation, reg_type = reg_type, reg_coeff = reg_coeff, C_arr = self.C_arr)
     self.model_no_dropout = model
     Experiment.__init__(self, N, P, KLips, activation, do_print = False)
     self.create_max_per_layer()
@@ -70,14 +71,16 @@ class MNISTExperiment(ConstantExperiment):
       
     # creating "crashing" and "normal" models
     ConstantExperiment.__init__(self, N, P, KLips, W, B, activation, do_print)
-  def get_accuracy(self, inputs = 10000, repetitions = 10000, tqdm_ = lambda x : x):
+  def get_accuracy(self, inputs = 10000, repetitions = 10000, tqdm_ = lambda x : x, no_dropout = False):
+    if no_dropout: repetitions = 1
     x = np.vstack((self.x_train, self.x_test))
     y = np.vstack((self.y_train, self.y_test))
     indices = np.random.choice(x.shape[0], inputs)
     data = x[indices, :]
     answers = np.argmax(y[indices], axis = 1)
-    predictions = [np.argmax(self.predict(inp, repetitions = repetitions), axis = 1) for inp in tqdm_(data)]
-    correct = [np.sum(pred == ans) for pred, ans in zip(predictions, answers)]
+    predict_method = (lambda x : np.argmax(self.predict_no_dropout(x))) if no_dropout else (lambda x : np.argmax(self.predict(x, repetitions = repetitions), axis = 1))
+    predictions = [predict_method(inp) for inp in tqdm_(data)]
+    correct = [pred == ans for pred, ans in zip(predictions, answers)]
     return np.sum(correct) / (inputs * repetitions)
   def get_inputs(self, how_many):
     x = np.vstack((self.x_train, self.x_test))
