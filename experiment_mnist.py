@@ -47,7 +47,7 @@ class MNISTExperiment(ConstantExperiment):
         plt.figure()
         plt.title('C during training')
         plt.xlabel('Epoch')
-        plt.ylabel('Error per layer')
+        plt.ylabel('C')
         for layer, data in enumerate(zip(*self.C_history)):
             plt.plot(data, label = 'Layer %d' % (layer + 1))
         plt.legend()
