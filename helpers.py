@@ -51,7 +51,7 @@ def get_kernel_reg(layer, errors, is_last, C = 1., p = 0.1, KLips = 1., lambda_ 
         # saving the error for the next call
         errors[layer] = error
 
-        print("Error is_last = %d %d = (pC + K(1-p) DeltaOld)wnorm p = %f C = %s K = %f DeltaOld = %s wnorm = %s" % (is_last, layer, p_layer, str(C_layer), KLips, str(errors[layer - 1]), str(wnorm1)))
+#        print("Error is_last = %d %d = (pC + K(1-p) DeltaOld)wnorm p = %f C = %s K = %f DeltaOld = %s wnorm = %s" % (is_last, layer, p_layer, str(C_layer), KLips, str(errors[layer - 1]), str(wnorm1)))
         
         # returning the error scaled
         return error * lambda_ if is_last else 0

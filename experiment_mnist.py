@@ -9,18 +9,18 @@ from tqdm import tqdm
 from functools import partial
 
 class MNISTExperiment(ConstantExperiment):
-  def __init__(self, N, P, KLips, epochs = 20, activation = 'sigmoid', update_C_inputs = 1000, reg_type = 0, reg_coeff = 0.01, train_dropout = None, do_print = False):
+  def __init__(self, N, P, KLips, epochs = 20, activation = 'sigmoid', update_C_inputs = 1000, reg_type = 0, reg_coeff = 0.01, train_dropout = None, do_print = False, scaler = 1.0):
     N = [28 ** 2] + N + [10]
 #    if type(P) == list:
 #        P = [0] + P + [0]
       
     """ Fill in the weights and initialize models """
-    
+   
     (x_train, y_train), (x_test, y_test) = mnist.load_data()
-    self.x_train = np.array([elem.flatten() for elem in x_train])
-    self.x_test = np.array([elem.flatten() for elem in x_test])
-    self.y_train = np.array([[1 if i == digit else 0 for i in range(10)] for digit in y_train.flatten()])
-    self.y_test = np.array([[1 if i == digit else 0 for i in range(10)] for digit in y_test.flatten()])
+    self.x_train = np.array([elem.flatten() / 255. * scaler for elem in x_train])
+    self.x_test = np.array([elem.flatten() / 255. * scaler for elem in x_test])
+    self.y_train = np.array([[scaler if i == digit else 0 for i in range(10)] for digit in y_train.flatten()])
+    self.y_test = np.array([[scaler if i == digit else 0 for i in range(10)] for digit in y_test.flatten()])
     
     if not train_dropout:
         train_dropout = [0] * len(N)
@@ -36,14 +36,32 @@ class MNISTExperiment(ConstantExperiment):
 
     self.C_history = []
 
-    tqdm_ = tqdm if do_print else lambda x : x
     history = []
+    self.EDeltaHistory = []
+    tqdm_ = tqdm if do_print else lambda x : x
     for i in tqdm_(range(epochs)):
         if activation == 'relu':
             self.reset_C()
             self.update_C_train(update_C_inputs)
             self.C_history += [self.C]
+            # weights and biases
+            self.W = model.get_weights()[0::2]
+            self.B = model.get_weights()[1::2]
+            self.EDeltaHistory += [self.get_mean_std_error()]
         history += [model.fit(self.x_train, self.y_train, verbose = 0, batch_size = 10000, epochs = 1, validation_data = (self.x_test, self.y_test))]
+
+    if do_print and activation == 'relu':
+        plt.figure()
+        plt.title('Delta during training')
+        plt.xlabel('Epoch')
+        plt.ylabel('Delta')
+        means, stds = zip(*self.EDeltaHistory)
+        plt.plot(means, label = 'Mean delta')
+        means = np.array(means)
+        stds = np.array(stds)
+        plt.fill_between(range(len(means)), means - stds, means + stds, color = 'green', alpha = 0.2, label = 'Std delta')
+        plt.legend()
+        plt.show()
 
     if do_print and activation == 'relu':
         plt.figure()
@@ -84,10 +102,10 @@ class MNISTExperiment(ConstantExperiment):
     predictions = [predict_method(inp) for inp in tqdm_(data)]
     correct = [pred == ans for pred, ans in zip(predictions, answers)]
     return np.sum(correct) / (inputs * repetitions)
-  def get_inputs(self, how_many):
-    x = np.vstack((self.x_train, self.x_test))
-    indices = np.random.choice(x.shape[0], how_many)
-    return x[indices, :]
+#  def get_inputs(self, how_many):
+#    x = np.vstack((self.x_train, self.x_test))
+#    indices = np.random.choice(x.shape[0], how_many)
+#    return x[indices, :]
   def update_C_train(self, inputs):
     self.update_C(self.get_inputs(inputs))
     [K.set_value(item, value) for item, value in zip(self.C_arr, self.C + [0])]
