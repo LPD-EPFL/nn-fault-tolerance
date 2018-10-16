@@ -7,6 +7,7 @@ from keras.datasets import mnist
 import pickle
 from tqdm import tqdm
 from functools import partial
+import sys
 
 class MNISTExperiment(ConstantExperiment):
   def __init__(self, N, P, KLips, epochs = 20, activation = 'sigmoid', update_C_inputs = 1000, reg_type = 0, reg_coeff = 0.01, train_dropout = None, do_print = False, scaler = 1.0):
@@ -17,8 +18,8 @@ class MNISTExperiment(ConstantExperiment):
     """ Fill in the weights and initialize models """
    
     (x_train, y_train), (x_test, y_test) = mnist.load_data()
-    self.x_train = np.array([elem.flatten() / 255. * scaler for elem in x_train])
-    self.x_test = np.array([elem.flatten() / 255. * scaler for elem in x_test])
+    self.x_train = np.array([elem.flatten() / 255. for elem in x_train])
+    self.x_test = np.array([elem.flatten() / 255. for elem in x_test])
     self.y_train = np.array([[scaler if i == digit else 0 for i in range(10)] for digit in y_train.flatten()])
     self.y_test = np.array([[scaler if i == digit else 0 for i in range(10)] for digit in y_test.flatten()])
     
@@ -39,6 +40,7 @@ class MNISTExperiment(ConstantExperiment):
     history = []
     self.EDeltaHistory = []
     tqdm_ = tqdm if do_print else lambda x : x
+    sys.stdout.flush()
     for i in tqdm_(range(epochs)):
         if activation == 'relu':
             self.reset_C()
@@ -49,6 +51,8 @@ class MNISTExperiment(ConstantExperiment):
             self.B = model.get_weights()[1::2]
             self.EDeltaHistory += [self.get_mean_std_error()]
         history += [model.fit(self.x_train, self.y_train, verbose = 0, batch_size = 10000, epochs = 1, validation_data = (self.x_test, self.y_test))]
+
+    self.reset_C()
 
     if do_print and activation == 'relu':
         plt.figure()
@@ -91,6 +95,15 @@ class MNISTExperiment(ConstantExperiment):
       
     # creating "crashing" and "normal" models
     ConstantExperiment.__init__(self, N, P, KLips, W, B, activation, do_print)
+
+    # TF bound sanity check
+    model = self.original_model
+    reg1 = K.function([K.learning_phase()], [self.reg])
+    reg = lambda : reg1([1])[0]
+    self.update_C_train(1000)
+    v1 = reg()
+    v2 = self.get_mean_std_error()[0]
+    assert np.allclose(v1, v2), "Bound error"
   def get_accuracy(self, inputs = 10000, repetitions = 10000, tqdm_ = lambda x : x, no_dropout = False):
     if no_dropout: repetitions = 1
     x = np.vstack((self.x_train, self.x_test))
@@ -102,10 +115,10 @@ class MNISTExperiment(ConstantExperiment):
     predictions = [predict_method(inp) for inp in tqdm_(data)]
     correct = [pred == ans for pred, ans in zip(predictions, answers)]
     return np.sum(correct) / (inputs * repetitions)
-#  def get_inputs(self, how_many):
-#    x = np.vstack((self.x_train, self.x_test))
-#    indices = np.random.choice(x.shape[0], how_many)
-#    return x[indices, :]
+  def get_inputs(self, how_many):
+    x = np.vstack((self.x_train, self.x_test))
+    indices = np.random.choice(x.shape[0], how_many)
+    return x[indices, :]
   def update_C_train(self, inputs):
     self.update_C(self.get_inputs(inputs))
     [K.set_value(item, value) for item, value in zip(self.C_arr, self.C + [0])]

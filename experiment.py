@@ -118,7 +118,7 @@ class Experiment():
       
       # beta from article for layer
       beta = self.get_max_f_xy(layer, norm1_minus_dot_abs, same_only = is_last)
-      
+
       # a, b from article for EDelta2 (note that old EDelta is used)
       a = C ** 2 * p_l * (alpha + p_l * beta) + 2 * self.K * C * p_l * (1 - p_l) * beta * EDelta
       b = self.K ** 2 * (1 - p_l) * (alpha + (1 - p_l) * beta)
@@ -250,6 +250,15 @@ class Experiment():
     
       # Running the experiment
       errors = [self.get_error(value, repetitions = repetitions) for value in data]
+
+      if self.activation == 'relu':
+          self.update_C(data)
+
+      mean_bound, std_bound = self.get_mean_std_error()
+
+      bound = mean_bound
+      if use_std:
+        bound = std_bound
 
       # List of errors for inputs
       error_array = func(np.max(np.abs(errors), axis = 2), axis = 1)
