@@ -96,6 +96,7 @@ class MNISTExperiment(ConstantExperiment):
     # creating "crashing" and "normal" models
     ConstantExperiment.__init__(self, N, P, KLips, W, B, activation, do_print)
 
+    if self.activation == 'sigmoid': return
     # TF bound sanity check
     model = self.original_model
     reg1 = K.function([K.learning_phase()], [self.reg])
@@ -104,7 +105,7 @@ class MNISTExperiment(ConstantExperiment):
     v1 = reg()
     v2 = self.get_mean_std_error()[0]
     assert np.allclose(v1, v2), "Bound error"
-  def get_accuracy(self, inputs = 10000, repetitions = 10000, tqdm_ = lambda x : x, no_dropout = False):
+  def get_accuracy(self, inputs = 1000, repetitions = 1000, tqdm_ = lambda x : x, no_dropout = False):
     if no_dropout: repetitions = 1
     x = np.vstack((self.x_train, self.x_test))
     y = np.vstack((self.y_train, self.y_test))
