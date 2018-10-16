@@ -11,6 +11,8 @@ from functools import partial
 class MNISTExperiment(ConstantExperiment):
   def __init__(self, N, P, KLips, epochs = 20, activation = 'sigmoid', update_C_inputs = 1000, reg_type = 0, reg_coeff = 0.01, train_dropout = None, do_print = False):
     N = [28 ** 2] + N + [10]
+#    if type(P) == list:
+#        P = [0] + P + [0]
       
     """ Fill in the weights and initialize models """
     
@@ -27,9 +29,9 @@ class MNISTExperiment(ConstantExperiment):
 
     self.activation = activation
 
-    model, self.reg = create_random_weight_model(N, train_dropout, KLips, activation, reg_type = reg_type, reg_coeff = reg_coeff, C_arr = self.C_arr)
-    self.model_no_dropout = model
     Experiment.__init__(self, N, P, KLips, activation, do_print = False)
+    model, self.reg, self.errors = create_random_weight_model(N, train_dropout, self.P, KLips, activation, reg_type = reg_type, reg_coeff = reg_coeff, C_arr = self.C_arr)
+    self.model_no_dropout = model
     self.create_max_per_layer()
 
     self.C_history = []

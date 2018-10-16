@@ -35,16 +35,14 @@ def get_custom_activation(KLips, func):
         return K.relu(KLips * x)
   return custom_activation
 
-# errors for kernel reg
-errors = {-1: 0}
-
 # todo: support for updateable C
-def get_kernel_reg(layer, is_last, C = 1., p = 0.1, KLips = 1., lambda_ = 0.1):
+def get_kernel_reg(layer, errors, is_last, C = 1., p = 0.1, KLips = 1., lambda_ = 0.1):
     """ Get a Erf regularizer for layer"""
     
     def kernel_reg(w, layer = layer, is_last = is_last, C_layer = C, p_layer = p, KLips = KLips, lambda_ = lambda_):
         """ Regularizer for a layer """
         # Maximal 1-norm over output neuron
+        if layer == 0: return 0
         wnorm1 = K.max(K.sum(K.abs(w), axis = 0))
         
         # error (induction)
@@ -52,6 +50,8 @@ def get_kernel_reg(layer, is_last, C = 1., p = 0.1, KLips = 1., lambda_ = 0.1):
         
         # saving the error for the next call
         errors[layer] = error
+
+        print("Error is_last = %d %d = (pC + K(1-p) DeltaOld)wnorm p = %f C = %s K = %f DeltaOld = %s wnorm = %s" % (is_last, layer, p_layer, str(C_layer), KLips, str(errors[layer - 1]), str(wnorm1)))
         
         # returning the error scaled
         return error * lambda_ if is_last else 0
@@ -59,11 +59,14 @@ def get_kernel_reg(layer, is_last, C = 1., p = 0.1, KLips = 1., lambda_ = 0.1):
     # returning the function
     return kernel_reg
 
-def create_random_weight_model(Ns, p_fails, KLips, func = 'sigmoid', reg_type = 0, reg_coeff = 0.01, C_arr = []):
+def create_random_weight_model(Ns, p_fails, p_bound, KLips, func = 'sigmoid', reg_type = 0, reg_coeff = 0.01, C_arr = []):
   """ Create some simple network with given dropout prob, weights and Lipschitz coefficient for sigmoid """
   
   # creating model
   model = Sequential()
+
+  # clearing the variable
+  errors = {0: 0} 
 
   # adding layers
   for i in range(len(Ns) - 1):
@@ -71,13 +74,13 @@ def create_random_weight_model(Ns, p_fails, KLips, func = 'sigmoid', reg_type = 
     is_last = i + 2 == len(Ns)
     p_fail = p_fails[1 + i]
     C_arr += [K.variable(1.0 if func == 'sigmoid' else 0.0)]
-    
+
     if reg_type == 'l2':
         regularizer = l2(reg_coeff)
     elif reg_type == 'l1':
         regularizer = l1(reg_coeff)
     elif reg_type  == 'delta':
-        regularizer = get_kernel_reg(i, is_last, KLips = KLips, lambda_ = reg_coeff, C = C_arr[i])
+        regularizer = get_kernel_reg(i, errors, is_last, KLips = KLips, lambda_ = reg_coeff, C = C_arr[i - 1], p = p_bound[i])
     elif reg_type == 0:
         regularizer = lambda w : 0
     
@@ -99,7 +102,7 @@ def create_random_weight_model(Ns, p_fails, KLips, func = 'sigmoid', reg_type = 
 
   model.summary()
   last = len(Ns) - 2
-  return model, errors[last] if last in errors else None
+  return model, errors[last] if last in errors else None, errors
 
 def create_model(p_fails, layer_weights, layer_biases, KLips, func = 'sigmoid'):
   """ Create some simple network with given dropout prob, weights and Lipschitz coefficient for sigmoid """
@@ -110,7 +113,7 @@ def create_model(p_fails, layer_weights, layer_biases, KLips, func = 'sigmoid'):
   
   # creating model
   model = Sequential()
- 
+
   # adding layers
   for i, (p_fail, w, b) in enumerate(zip(p_fails[1:] + [0], layer_weights, layer_biases)):
     # is last layer (with output)?
