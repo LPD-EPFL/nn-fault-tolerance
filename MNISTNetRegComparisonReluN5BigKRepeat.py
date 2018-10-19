@@ -1,3 +1,19 @@
+import os
+os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"   # see issue #152
+os.environ["CUDA_VISIBLE_DEVICES"]="0"
+
+import tensorflow as tf
+from keras.backend.tensorflow_backend import set_session
+
+config = tf.ConfigProto()
+config.gpu_options.per_process_gpu_memory_fraction = 0.5
+config.gpu_options.allow_growth = True
+set_session(tf.Session(config=config))
+
+import sys
+nProc = int(sys.argv[1])
+worker = int(sys.argv[2])
+
 from matplotlib import pyplot as plt
 import numpy as np
 from keras import backend as K
@@ -11,8 +27,8 @@ NNeurons = 10
 activation = 'relu'
 scaler = 1.0
 epochs = 500
-inputs = 2000
-acc_param = 5000
+inputs = 1000
+acc_param = 2000
 
 def get_results(pfirst = 0.5, reg_type = 'delta', reg_coeff = 1e-4, repetition = 0):
     if reg_type == 0 and reg_coeff != 0:
@@ -42,15 +58,17 @@ def get_results(pfirst = 0.5, reg_type = 'delta', reg_coeff = 1e-4, repetition =
     K.clear_session()
     return results
 
-pfirst_options = np.linspace(0, 1, 10)
+pfirst_options = np.linspace(0, 1, 6)[1:]
 reg_type_options = ['delta', 'l1', 'l2', 0]
-reg_coeff_options = [0] + np.logspace(-10, 0, 30)
-repetitions = range(15)
+reg_coeff_options = [0] + np.logspace(-10, 0, 10)
+repetitions = range(6)[worker::nProc]
 
-print(pfirst_options)
-print(reg_type_options)
-print(reg_coeff_options)
-print(repetitions)
+print('P', pfirst_options)
+print('Reg', reg_type_options)
+print('Coeff', reg_coeff_options)
+print('Repetitions', repetitions)
+
+print('Need to run: %d' % (len(pfirst_options) * len(repetitions) * ((len(reg_type_options) - 1) * (len(reg_coeff_options) - 1) + 1)))
 
 results = {(pfirst, reg_type, reg_coeff, repetition): get_results(pfirst = pfirst, reg_type = reg_type, reg_coeff = reg_coeff, repetition = repetition)
  for repetition in repetitions
