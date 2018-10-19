@@ -97,7 +97,7 @@ class MNISTExperiment(ConstantExperiment):
     self.original_model = model
       
     # creating "crashing" and "normal" models
-    ConstantExperiment.__init__(self, N, P, KLips, W, B, activation, do_print)
+    ConstantExperiment.__init__(self, N, P, KLips, W, B, activation, do_print, name = name)
 
     if self.activation == 'sigmoid' or reg_type != 'delta': return
     # TF bound sanity check

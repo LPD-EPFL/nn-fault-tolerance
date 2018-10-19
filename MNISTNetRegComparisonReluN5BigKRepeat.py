@@ -28,7 +28,7 @@ activation = 'relu'
 scaler = 1.0
 epochs = 500
 inputs = 1000
-acc_param = 2000
+acc_param = 1000
 
 def get_results(pfirst = 0.5, reg_type = 'delta', reg_coeff = 1e-4, repetition = 0):
     if reg_type == 0 and reg_coeff != 0:
@@ -58,10 +58,10 @@ def get_results(pfirst = 0.5, reg_type = 'delta', reg_coeff = 1e-4, repetition =
     K.clear_session()
     return results
 
-pfirst_options = np.linspace(0, 1, 6)[1:]
+pfirst_options = np.linspace(0, 1, 6)[1:-1]
 reg_type_options = ['delta', 'l1', 'l2', 0]
-reg_coeff_options = [0] + np.logspace(-10, 0, 10)
-repetitions = range(6)[worker::nProc]
+reg_coeff_options = [0] + list(np.logspace(-10, 0, 6))
+repetitions = list(range(3)[worker::nProc])
 
 print('P', pfirst_options)
 print('Reg', reg_type_options)
@@ -77,4 +77,4 @@ results = {(pfirst, reg_type, reg_coeff, repetition): get_results(pfirst = pfirs
  for pfirst in pfirst_options
 }
 
-pickle.dump(results, open('results_repeat.pkl', 'wb'))
+pickle.dump(results, open('results_repeat%d.pkl' % worker, 'wb'))

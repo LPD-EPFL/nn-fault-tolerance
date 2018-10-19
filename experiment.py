@@ -58,6 +58,7 @@ class Experiment():
     """ Plot the histogram of error  """
     
     # plotting
+    plt.figure()
     plt.title('Network error histogram plot')
     plt.xlabel('Network output error')
     plt.ylabel('Frequency')
@@ -279,7 +280,8 @@ class Experiment():
       percent = 100 * max_exp / mean_bound
       print(title + ' error %.5f, %.2f%% from theoretical, norm %.2f' % (max_exp, percent, np.linalg.norm(data.flatten()) / data.shape[0]))
       percents.append(percent)
-  
+ 
+    plt.figure() 
     plt.xlabel('Iteration count')
     plt.ylabel('Percent from theoretical bound')
     plt.plot(percents)
