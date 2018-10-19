@@ -5,9 +5,9 @@ from keras import backend as K
 import helpers
 
 class ConstantExperiment(Experiment):
-  def __init__(self, N, P, KLips, W, B, activation = 'sigmoid', do_print = False):
+  def __init__(self, N, P, KLips, W, B, activation = 'sigmoid', do_print = False, name = 'exp'):
     """ Fill in the weights and initialize models """
-    Experiment.__init__(self, N, P, KLips, activation, do_print)
+    Experiment.__init__(self, N, P, KLips, activation, do_print, name = name)
     
     # array with weight matrices
     self.W = W
@@ -25,7 +25,8 @@ class ConstantExperiment(Experiment):
 
   def update_C(self, inputs):
     if self.activation == 'relu':
-        self.C = np.max([self.C, self.max_per_layer(inputs)], axis = 0)
+#        self.C = np.max([self.C, self.max_per_layer(inputs)], axis = 0)
+        self.C = self.max_per_layer(inputs)
 
   def reset_C(self):
     self.C = np.zeros(np.array(self.C).shape)

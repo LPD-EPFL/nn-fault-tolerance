@@ -5,7 +5,7 @@ from matplotlib import pyplot as plt
 
 class Experiment():
   """ One experiment on neuron crash, contains a fixed weights network """
-  def __init__(self, N, P, KLips, activation = 'sigmoid', do_print = False):
+  def __init__(self, N, P, KLips, activation = 'sigmoid', do_print = False, name = 'exp'):
     """ Initialize using given number of neurons per layer N (array), probability of failure P, and the Lipschitz coefficient """
     
     if do_print:
@@ -13,6 +13,9 @@ class Experiment():
     
     # saving N
     self.N = N
+
+    # saving name
+    self.name = name
     
     # making list if P is a number
     if type(P) == float:
@@ -37,7 +40,8 @@ class Experiment():
     # output for each layer https://stackoverflow.com/questions/41711190/keras-how-to-get-the-output-of-each-layer
     model = self.model_no_dropout
     inp = model.input
-    outputs = [K.max(K.abs(layer.output)) for layer in model.layers[:-1]] # max over inputs over neurons
+#    outputs = [K.max(K.abs(layer.output)) for layer in model.layers[:-1]] # max over inputs over neurons
+    outputs = [K.mean(K.abs(layer.output)) for layer in model.layers[:-1]] # max over inputs over neurons
     max_per_layer = K.function([inp, K.learning_phase()], outputs)
     self.max_per_layer = lambda x : max_per_layer([x, 1])
     
@@ -60,6 +64,7 @@ class Experiment():
     plt.hist(errors, density = True)
     #plt.plot([true, true], [0, 1], label = 'True value')
     #plt.legend()
+    plt.savefig('error_hist_' + experiment.name + '.png')
     plt.show()
   
   def get_error(experiment, inp, repetitions = 100):
@@ -186,7 +191,7 @@ class Experiment():
       print('Tightness  %.1f%% Std %.1f%%' % (100 * mean_exp / mean_bound, 100 * std_exp / std_bound))
 
     # Returning summary
-    return mean_exp, std_exp, mean_bound, std_bound, np.std(trues)
+    return mean_exp, std_exp, mean_bound, std_bound, np.mean(trues), np.std(trues)
 
   # net with L hidden layers:
   # input layer 0
