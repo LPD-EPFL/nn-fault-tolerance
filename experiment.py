@@ -36,12 +36,15 @@ class Experiment():
     # saving activation
     self.activation = activation
 
+    # use C array?
+    self.use_Carr = False
+
   def create_max_per_layer(self):
     # output for each layer https://stackoverflow.com/questions/41711190/keras-how-to-get-the-output-of-each-layer
     model = self.model_no_dropout
     inp = model.input
 #    outputs = [K.max(K.abs(layer.output)) for layer in model.layers[:-1]] # max over inputs over neurons
-    outputs = [K.mean(K.abs(layer.output)) for layer in model.layers[:-1]] # max over inputs over neurons
+    outputs = [K.mean(K.abs(layer.output), axis = 0) for layer in model.layers[:-1]] # mean over inputs
     max_per_layer = K.function([inp, K.learning_phase()], outputs)
     self.max_per_layer = lambda x : max_per_layer([x, 1])
     
@@ -82,6 +85,13 @@ class Experiment():
     res = [func(w_neuron) for w_neuron in wb.T]
     return np.max(res)
   
+  def get_all_f(self, layer, func):
+    """ Return array func(weights) over neurons in layer """
+    wb = self.W[layer]
+    #print(wb.shape, len(wb.T))
+    res = [func(w_neuron) for w_neuron in wb.T]
+    return res
+
   def get_max_f_xy(self, layer, func, same_only = False):
     """ Maximize func(w1, w2) over neurons in layer """
     wb = self.W[layer]
@@ -96,7 +106,7 @@ class Experiment():
     """ Get theoretical bound for mean and std of error given weights """
     
     # Expectation of error
-    EDelta = 0.
+    EDelta = np.zeros(self.N[1]) if self.use_Carr else 0.
     
     # Expectation of error squared
     EDelta2 = 0.
@@ -114,7 +124,8 @@ class Experiment():
       # probability of failure of a single neuron
       p_l = self.P[layer]
      
-      C = self.get_C(layer)
+      C = np.max(self.get_C(layer))
+      Carr = self.get_C(layer)
  
       # maximal 1-norm of weights
       w_1_norm = self.get_max_f(layer, norm1)
@@ -125,15 +136,22 @@ class Experiment():
       # beta from article for layer
       beta = self.get_max_f_xy(layer, norm1_minus_dot_abs, same_only = is_last)
 
-      # a, b from article for EDelta2 (note that old EDelta is used)
-      a = C ** 2 * p_l * (alpha + p_l * beta) + 2 * self.K * C * p_l * (1 - p_l) * beta * EDelta
-      b = self.K ** 2 * (1 - p_l) * (alpha + (1 - p_l) * beta)
+      if not self.use_Carr:
+        # a, b from article for EDelta2 (note that old EDelta is used)
+        a = C ** 2 * p_l * (alpha + p_l * beta) + 2 * self.K * C * p_l * (1 - p_l) * beta * EDelta
+        b = self.K ** 2 * (1 - p_l) * (alpha + (1 - p_l) * beta)
       
-      # Updating EDelta2
-      EDelta2 = a + b * EDelta2
+        # Updating EDelta2
+        EDelta2 = a + b * EDelta2
       
-      # Updating EDelta
-      EDelta = p_l * w_1_norm * C + self.K * w_1_norm * (1 - p_l) * EDelta
+      # Updating EDelta (Carr version)
+      if self.use_Carr:
+        W1 = np.array(self.get_all_f(layer, np.abs))
+        Wc = W1 @ Carr
+        print(W1.shape, len(Carr), Wc.shape)
+        EDelta = p_l * Wc + self.K * (1 - p_l) * W1 @ EDelta
+      else:
+        EDelta = p_l * w_1_norm * C + self.K * w_1_norm * (1 - p_l) * EDelta
       
       # Adding new values to arrays
       EDeltaArr.append(EDelta)
