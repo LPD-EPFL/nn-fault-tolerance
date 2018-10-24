@@ -174,7 +174,7 @@ class Experiment():
       p_l = self.P[layer]
 
       # array of max output per neuron for layer
-      Carr = self.get_C(layer)
+      Carr = self.get_Carr(layer)
 
       # Updating EDelta: getting the weight matrix
       W1 = np.array(self.get_all_f(layer, np.abs))
