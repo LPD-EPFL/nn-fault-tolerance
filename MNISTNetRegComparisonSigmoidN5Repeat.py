@@ -26,7 +26,7 @@ KLips = 4.
 NNeurons = 10
 activation = 'sigmoid'
 scaler = 1.
-epochs = 100
+epochs = 1000
 inputs = 1000
 acc_param = 1000
 
@@ -61,7 +61,7 @@ def get_results(pfirst = 0.5, reg_type = 'delta', reg_coeff = 1e-4, repetition =
 
 pfirst_options = [0.05]#np.linspace(0, 0.2, 6)[1:-1]
 reg_type_options = ['delta', 'l1', 'l2', 0]
-reg_coeff_options = ([0] + list(np.logspace(-10, 0, 6)))[1:]
+reg_coeff_options = ([0] + list(np.logspace(-10, 0, 6)))
 repetitions = list(range(12)[worker::nProc])
 
 print('P', pfirst_options)
