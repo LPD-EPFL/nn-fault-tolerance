@@ -46,27 +46,26 @@ class MNISTExperiment(ConstantExperiment):
             self.reset_C()
             self.update_C_train(update_C_inputs)
             self.C_history += [self.C]
-            # weights and biases
-            self.W = model.get_weights()[0::2]
-            self.B = model.get_weights()[1::2]
-            self.EDeltaHistory += [self.get_mean_std_error()]
+        # weights and biases
+        self.W = model.get_weights()[0::2]
+        self.B = model.get_weights()[1::2]
+        self.EDeltaHistory += [self.get_mean_std_error()]
         history += [model.fit(self.x_train, self.y_train, verbose = 0, batch_size = 10000, epochs = 1, validation_data = (self.x_test, self.y_test))]
 
     self.reset_C()
 
-    if do_print and activation == 'relu':
-        plt.figure()
-        plt.title('Delta bound during training')
-        plt.xlabel('Epoch')
-        plt.ylabel('Delta bound')
-        means, stds = zip(*self.EDeltaHistory)
-        plt.plot(means, label = 'Mean delta')
-        means = np.array(means)
-        stds = np.array(stds)
-        plt.fill_between(range(len(means)), means - stds, means + stds, color = 'green', alpha = 0.2, label = 'Std delta')
-        plt.legend()
-        plt.savefig('delta_bound_training_' + name + '.png')
-        plt.show()
+    plt.figure()
+    plt.title('Delta bound during training')
+    plt.xlabel('Epoch')
+    plt.ylabel('Delta bound')
+    means, stds = zip(*self.EDeltaHistory)
+    plt.plot(means, label = 'Mean delta')
+    means = np.array(means)
+    stds = np.array(stds)
+    plt.fill_between(range(len(means)), means - stds, means + stds, color = 'green', alpha = 0.2, label = 'Std delta')
+    plt.legend()
+    plt.savefig('delta_bound_training_' + name + '.png')
+    plt.show()
 
     if do_print and activation == 'relu':
         plt.figure()
