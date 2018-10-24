@@ -125,5 +125,4 @@ class MNISTExperiment(ConstantExperiment):
     return x[indices, :]
   def update_C_train(self, inputs):
     self.update_C(self.get_inputs(inputs))
-    return
     [K.set_value(item, value) for item, value in zip(self.C_arr, self.C + [0])]

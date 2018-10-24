@@ -36,9 +36,6 @@ class Experiment():
     # saving activation
     self.activation = activation
 
-    # use C array?
-    self.use_Carr = False
-
   def create_max_per_layer(self):
     # output for each layer https://stackoverflow.com/questions/41711190/keras-how-to-get-the-output-of-each-layer
     model = self.model_no_dropout
@@ -100,70 +97,103 @@ class Experiment():
     return np.max(res)
  
   def get_C(self, layer):
+   return self.C if self.activation == 'sigmoid' else np.max(self.C[layer - 1])
+
+  def get_Carr(self, layer):
    return self.C if self.activation == 'sigmoid' else self.C[layer - 1]
- 
+
   def get_mean_std_error(self):
     """ Get theoretical bound for mean and std of error given weights """
-    
+
     # Expectation of error
-    EDelta = np.zeros(self.N[1]) if self.use_Carr else 0.
-    
+    EDelta = 0.
+
     # Expectation of error squared
     EDelta2 = 0.
-    
+
     # Array of expectations
     EDeltaArr = [0]
-    
+
     # Array of expectations of squares
     EDelta2Arr = [0]
-    
+
     # Loop over layers
     for layer in range(1, len(self.W)):
       is_last = layer + 1 == len(self.W)
-      
+
       # probability of failure of a single neuron
       p_l = self.P[layer]
-     
-      C = np.max(self.get_C(layer))
-      Carr = self.get_C(layer)
- 
+
+      C = self.get_C(layer)
+
       # maximal 1-norm of weights
       w_1_norm = self.get_max_f(layer, norm1)
-      
+
       # alpha from article for layer
       alpha = self.get_max_f_xy(layer, dot_abs, same_only = is_last)
-      
+
       # beta from article for layer
       beta = self.get_max_f_xy(layer, norm1_minus_dot_abs, same_only = is_last)
 
-      if not self.use_Carr:
-        # a, b from article for EDelta2 (note that old EDelta is used)
-        a = C ** 2 * p_l * (alpha + p_l * beta) + 2 * self.K * C * p_l * (1 - p_l) * beta * EDelta
-        b = self.K ** 2 * (1 - p_l) * (alpha + (1 - p_l) * beta)
-      
-        # Updating EDelta2
-        EDelta2 = a + b * EDelta2
-      
-      # Updating EDelta (Carr version)
-      if self.use_Carr:
-        W1 = np.array(self.get_all_f(layer, np.abs))
-        Wc = W1 @ Carr
-        print(W1.shape, len(Carr), Wc.shape)
-        EDelta = p_l * Wc + self.K * (1 - p_l) * W1 @ EDelta
-      else:
-        EDelta = p_l * w_1_norm * C + self.K * w_1_norm * (1 - p_l) * EDelta
-      
+      # a, b from article for EDelta2 (note that old EDelta is used)
+      a = C ** 2 * p_l * (alpha + p_l * beta) + 2 * self.K * C * p_l * (1 - p_l) * beta * EDelta
+      b = self.K ** 2 * (1 - p_l) * (alpha + (1 - p_l) * beta)
+
+      # Updating EDelta2
+      EDelta2 = a + b * EDelta2
+
+      # Updating EDelta
+      EDelta = p_l * w_1_norm * C + self.K * w_1_norm * (1 - p_l) * EDelta
+
       # Adding new values to arrays
       EDeltaArr.append(EDelta)
       EDelta2Arr.append(EDelta2)
-      
+
     # Debug output
     #print(EDeltaArr)
     #print(EDelta2Arr)
     self.EDeltaArr = EDeltaArr
-    
+
     # Returning mean and sqrt(std^2)
     return EDelta, EDelta2 ** 0.5
+
+  def get_mean_error_v2(self):
+    """ Get theoretical bound for mean error given weights, the improved version """
+
+    # Expectation of error
+    EDelta = np.zeros(self.N[1])
+
+    # Array of expectations
+    EDeltaArr = [EDelta]
+
+    # Loop over layers
+    for layer in range(1, len(self.W)):
+      is_last = layer + 1 == len(self.W)
+
+      # probability of failure of a single neuron
+      p_l = self.P[layer]
+
+      # array of max output per neuron for layer
+      Carr = self.get_C(layer)
+
+      # Updating EDelta: getting the weight matrix
+      W1 = np.array(self.get_all_f(layer, np.abs))
+
+      # Weight matrix x Max_per_layer vector
+      Wc = W1 @ Carr
+
+      # Updating delta evector
+      EDelta = p_l * Wc + self.K * (1 - p_l) * (W1 @ EDelta)
+
+      # Adding new values to array
+      EDeltaArr.append(EDelta)
+
+    # Debug output
+    #print(EDeltaArr)
+    self.EDeltaArr = EDeltaArr
+
+    # Returning mean and sqrt(std^2)
+    return EDelta
   
   def run(self, repetitions = 10000, inputs = 50, do_plot = True, do_print = True, do_tqdm = True, randn = None, inputs_update = None):
     """ Run a single experiment with a fixed network """
@@ -211,29 +241,6 @@ class Experiment():
 
     # Returning summary
     return mean_exp, std_exp, mean_bound, std_bound, np.mean(trues), np.std(trues)
-
-  # net with L hidden layers:
-  # input layer 0
-  # output layer L+1
-  # hidden 1...L
-  # EDelta1 -- for 1 hidden layer, therefore it's error for L+1 th layer
-  # gradient_error
-  def dEDelta_dW(self, top_index, bot_index):
-      # top_index (1..L) for EDelta
-      # bot_index (2..L+1) for w
-      K = self.K
-      C = self.get_C(top_index - 1)
-      p = self.P[top_index]
-      w = self.W[top_index]
-      idx = np.argmax(np.linalg.norm(np.abs(w), ord = 1, axis = 0))
-      wmat = np.zeros((self.N[bot_index - 1], self.N[bot_index]))
-      wmat[idx, :] = w[idx, :]
-      if top_index + 1 == bot_index:
-          return (p * C + K * (1 - p) * self.EDeltaArr[top_index - 1]) * np.sign(wmat)
-      elif top_index + 1 < bot_index:
-          return np.zeros((self.N[bot_index - 1], self.N[bot_index]))
-      else:
-          return self.dEDelta_dW(top_index - 1, bot_index) * K * (1 - p) * np.linalg.norm(np.abs(w[idx, :]), ord = 1)
 
   def bad_input_search(self, random_seed = 42, repetitions = 1000, to_add = 20, to_keep = 5, maxiter = 20, scaler = 1, use_std = False):
     # Trying genetic search for x
