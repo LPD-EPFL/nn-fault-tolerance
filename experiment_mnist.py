@@ -3,7 +3,6 @@ from helpers import *
 import numpy as np
 from matplotlib import pyplot as plt
 from keras import backend as K
-from keras.datasets import mnist
 import pickle
 from tqdm import tqdm
 from functools import partial
@@ -17,28 +16,26 @@ class MNISTExperiment(ConstantExperiment):
       
     """ Fill in the weights and initialize models """
    
-    (x_train, y_train), (x_test, y_test) = mnist.load_data()
-    self.x_train = np.array([elem.flatten() / 255. for elem in x_train])
-    self.x_test = np.array([elem.flatten() / 255. for elem in x_test])
-    self.y_train = np.array([[scaler if i == digit else 0 for i in range(10)] for digit in y_train.flatten()])
-    self.y_test = np.array([[scaler if i == digit else 0 for i in range(10)] for digit in y_test.flatten()])
+    self.x_train, self.y_train, self.x_test, self.y_test = get_mnist(out_scaler = scaler, in_scaler = 1.)
     
     if not train_dropout:
         train_dropout = [0] * len(N)
 
     self.C_arr = []
+    self.C_per_neuron_arr = []
 
     self.activation = activation
 
     Experiment.__init__(self, N, P, KLips, activation, do_print = False, name = name)
-    model, self.reg, self.errors = create_random_weight_model(N, train_dropout, self.P, KLips, activation, reg_type = reg_type, reg_coeff = reg_coeff, C_arr = self.C_arr)
+    model, self.reg, self.errors = create_random_weight_model(N, train_dropout, self.P, KLips, activation, reg_type = reg_type, reg_coeff = reg_coeff, C_arr = self.C_arr, C_per_neuron_arr = self.C_per_neuron_arr)
     self.model_no_dropout = model
-    self.create_max_per_layer()
+    self.create_supplementary_functions()
 
     self.C_history = []
 
     history = []
     self.EDeltaHistory = []
+    self.EDeltaV2History = []
     tqdm_ = tqdm if do_print else lambda x : x
     sys.stdout.flush()
     for i in tqdm_(range(epochs)):
@@ -50,6 +47,7 @@ class MNISTExperiment(ConstantExperiment):
         self.W = model.get_weights()[0::2]
         self.B = model.get_weights()[1::2]
         self.EDeltaHistory += [self.get_mean_std_error()]
+        self.EDeltaV2History += [np.mean(self.get_mean_error_v2())]
         history += [model.fit(self.x_train, self.y_train, verbose = 0, batch_size = 10000, epochs = 1, validation_data = (self.x_test, self.y_test))]
 
     self.reset_C()
@@ -60,6 +58,7 @@ class MNISTExperiment(ConstantExperiment):
     plt.ylabel('Delta bound')
     means, stds = zip(*self.EDeltaHistory)
     plt.plot(means, label = 'Mean delta')
+    plt.plot(self.EDeltaV2History, label = 'Bound v2')
     means = np.array(means)
     stds = np.array(stds)
     plt.fill_between(range(len(means)), means - stds, means + stds, color = 'green', alpha = 0.2, label = 'Std delta')
@@ -73,7 +72,7 @@ class MNISTExperiment(ConstantExperiment):
         plt.xlabel('Epoch')
         plt.ylabel('C')
         for layer, data in enumerate(zip(*self.C_history)):
-            plt.plot(data, label = 'Layer %d' % (layer + 1))
+            plt.plot([np.mean(x) for x in data], label = 'Layer %d' % (layer + 1))
         plt.legend()
         plt.savefig('C_training_' + name + '.png')
         plt.show()
@@ -98,15 +97,6 @@ class MNISTExperiment(ConstantExperiment):
     # creating "crashing" and "normal" models
     ConstantExperiment.__init__(self, N, P, KLips, W, B, activation, do_print, name = name)
 
-    if self.activation == 'sigmoid' or reg_type != 'delta': return
-    # TF bound sanity check
-    model = self.original_model
-    reg1 = K.function([K.learning_phase()], [self.reg])
-    reg = lambda : reg1([1])[0]
-    self.update_C_train(1000)
-    v1 = reg()
-    v2 = self.get_mean_std_error()[0]
-    assert np.allclose(v1, v2), "Bound error"
   def get_accuracy(self, inputs = 1000, repetitions = 1000, tqdm_ = lambda x : x, no_dropout = False):
     if no_dropout: repetitions = 1
     x = np.vstack((self.x_train, self.x_test))
@@ -124,4 +114,5 @@ class MNISTExperiment(ConstantExperiment):
     return x[indices, :]
   def update_C_train(self, inputs):
     self.update_C(self.get_inputs(inputs))
-    [K.set_value(item, value) for item, value in zip(self.C_arr, self.C + [0])]
+    [K.set_value(item, np.mean(value)) for item, value in zip(self.C_arr, self.C + [0])]
+    [K.set_value(item, value.reshape(-1, 1)) for item, value in zip(self.C_per_neuron_arr[:-1], self.C)]

@@ -21,12 +21,12 @@ class ConstantExperiment(Experiment):
     # creating correct model
     self.model_no_dropout = create_model([0] * len(self.P), self.W, self.B, self.K, activation)
 
-    self.create_max_per_layer()
+    # create functions for the model
+    self.create_supplementary_functions()
 
   def update_C(self, inputs):
     if self.activation == 'relu':
-#        self.C = np.max([self.C, self.max_per_layer(inputs)], axis = 0)
-        self.C = self.max_per_layer(inputs)
+        self.C = self.mean_per_neuron(inputs)
 
   def reset_C(self):
     if self.activation == 'relu':

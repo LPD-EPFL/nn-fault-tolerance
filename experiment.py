@@ -36,14 +36,12 @@ class Experiment():
     # saving activation
     self.activation = activation
 
-  def create_max_per_layer(self):
+  def create_supplementary_functions(self):
     # output for each layer https://stackoverflow.com/questions/41711190/keras-how-to-get-the-output-of-each-layer
     model = self.model_no_dropout
     inp = model.input
-#    outputs = [K.max(K.abs(layer.output)) for layer in model.layers[:-1]] # max over inputs over neurons
-    outputs = [K.mean(K.abs(layer.output), axis = 0) for layer in model.layers[:-1]] # mean over inputs
-    max_per_layer = K.function([inp, K.learning_phase()], outputs)
-    self.max_per_layer = lambda x : max_per_layer([x, 1])
+    outputs = [K.mean(K.abs(layer.output), axis = 0) for layer in model.layers[:-1]] # mean over inputs, per-neuron
+    self.mean_per_neuron = lambda x : (K.function([inp, K.learning_phase()], outputs))([x, 1])
     
   def predict_no_dropout(self, data):
     """ Get correct network output for a given input vector """

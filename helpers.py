@@ -5,6 +5,7 @@ from keras.models import Sequential
 from keras.layers import Dense, Dropout, Flatten
 from keras.layers.core import Lambda
 from keras.initializers import Constant
+from keras.datasets import mnist
 from keras.regularizers import l1, l2
 from functools import partial
 
@@ -35,6 +36,16 @@ def get_custom_activation(KLips, func):
         return K.relu(KLips * x)
   return custom_activation
 
+# preparing dataset
+def get_mnist(out_scaler = 1.0, in_scaler = 255.):
+    (x_train, y_train), (x_test, y_test) = mnist.load_data()
+    x_train = x_train.reshape(-1, 28 ** 2) / 255. * in_scaler
+    x_test = x_test.reshape(-1, 28 ** 2) / 255. * in_scaler
+    digits = {x: [out_scaler if y == x else 0. for y in range(10)] for x in range(10)}
+    y_train = np.array([digits[y] for y in y_train])
+    y_test = np.array([digits[y] for y in y_test])
+    return x_train, y_train, x_test, y_test
+
 # todo: support for updateable C
 def get_kernel_reg(layer, errors, is_last, C = 1., p = 0.1, KLips = 1., lambda_ = 0.1):
     """ Get a Erf regularizer for layer"""
@@ -59,7 +70,30 @@ def get_kernel_reg(layer, errors, is_last, C = 1., p = 0.1, KLips = 1., lambda_ 
     # returning the function
     return kernel_reg
 
-def create_random_weight_model(Ns, p_fails, p_bound, KLips, func = 'sigmoid', reg_type = 0, reg_coeff = 0.01, C_arr = []):
+def get_kernel_reg_v2(layer, errors, is_last, C, p, KLips = 1., lambda_ = 0.1):
+    """ Get a DeltaNetwork regularizer for layer"""
+
+    def kernel_reg(w, layer = layer, is_last = is_last, C_layer = C, p_layer = p, KLips = KLips, lambda_ = lambda_):
+        """ Regularizer for a layer """
+        # Maximal 1-norm over output neuron
+        if layer == 0: return 0
+        W = K.abs(w)
+
+        #print("Error is_last = %d %d = W(pC + K(1-p) DeltaOld) p = %f C = %s K = %f DeltaOld = %s W = %s" % (is_last, layer, p_layer, str(C_layer), KLips, str(errors[layer - 1]), str(W)))
+        
+        # error (induction)
+        error = K.dot(K.transpose(W), p_layer * C_layer + KLips * (1 - p_layer) * errors[layer - 1])
+        
+        # saving the error for the next call
+        errors[layer] = error
+
+        # returning the error scaled
+        return K.mean(error) * lambda_ if is_last else 0
+
+    # returning the function
+    return kernel_reg
+
+def create_random_weight_model(Ns, p_fails, p_bound, KLips, func = 'sigmoid', reg_type = 0, reg_coeff = 0.01, C_arr = [], C_per_neuron_arr = []):
   """ Create some simple network with given dropout prob, weights and Lipschitz coefficient for sigmoid """
   
   # creating model
@@ -74,6 +108,7 @@ def create_random_weight_model(Ns, p_fails, p_bound, KLips, func = 'sigmoid', re
     is_last = i + 2 == len(Ns)
     p_fail = p_fails[1 + i]
     C_arr += [K.variable(1.0 if func == 'sigmoid' else 0.0)]
+    C_per_neuron_arr += [K.variable(np.array([1. if func == 'sigmoid' else 0.] * Ns[i + 1]).reshape(-1, 1))]
 
     if reg_type == 'l2':
         regularizer = l2(reg_coeff)
@@ -81,6 +116,8 @@ def create_random_weight_model(Ns, p_fails, p_bound, KLips, func = 'sigmoid', re
         regularizer = l1(reg_coeff)
     elif reg_type  == 'delta':
         regularizer = get_kernel_reg(i, errors, is_last, KLips = KLips, lambda_ = reg_coeff, C = C_arr[i - 1], p = p_bound[i])
+    elif reg_type  == 'delta_network':
+        regularizer = get_kernel_reg_v2(i, errors, is_last, KLips = KLips, lambda_ = reg_coeff, C = C_per_neuron_arr[i - 1], p = p_bound[i])
     elif reg_type == 0:
         regularizer = lambda w : 0
 
