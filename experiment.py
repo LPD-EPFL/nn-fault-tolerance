@@ -98,7 +98,7 @@ class Experiment():
    return self.C if self.activation == 'sigmoid' else np.max(self.C[layer - 1])
 
   def get_Carr(self, layer):
-   return self.C if self.activation == 'sigmoid' else self.C[layer - 1]
+   return np.ones(self.N[layer]) if self.activation == 'sigmoid' else self.C[layer - 1]
 
   def get_mean_std_error(self):
     """ Get theoretical bound for mean and std of error given weights """
