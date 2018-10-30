@@ -59,9 +59,9 @@ def get_results(pfirst = 0.5, reg_type = 'delta', reg_coeff = 1e-4, repetition =
     K.clear_session()
     return results
 
-pfirst_options = [0.02, 0.04]#np.linspace(0, 0.2, 6)[1:-1]
+pfirst_options = [0.06]#np.linspace(0, 0.2, 6)[1:-1]
 reg_type_options = ['delta', 'l1', 'l2', 0]
-reg_coeff_options = [0] + list(np.logspace(-10, 0, 6))
+reg_coeff_options = [0] + list(np.logspace(-10, 0, 6))[:-1]
 repetitions = list(range(24)[worker::nProc])
 
 print('P', pfirst_options)
