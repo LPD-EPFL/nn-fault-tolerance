@@ -109,6 +109,10 @@ def create_random_weight_model(Ns, p_fails, p_bound, KLips, func = 'sigmoid', re
     p_fail = p_fails[1 + i]
     C_arr += [K.variable(1.0 if func == 'sigmoid' else 0.0)]
     C_per_neuron_arr += [K.variable(np.array([1. if func == 'sigmoid' else 0.] * Ns[i + 1]).reshape(-1, 1))]
+    N_pre = Ns[i]
+    N_post = Ns[i + 1]
+
+    print(N_pre, N_post)
 
     if reg_type == 'l2':
         regularizer = l2(reg_coeff)
@@ -123,7 +127,7 @@ def create_random_weight_model(Ns, p_fails, p_bound, KLips, func = 'sigmoid', re
 
     # adding dense layer with sigmoid for hidden and linear for last layer
     model.add(Dense(Ns[i + 1], input_shape = (Ns[i], ),
-                    kernel_initializer = 'random_normal',
+                    kernel_initializer = Constant(np.random.randn(N_pre, N_post) * np.sqrt(2. / N_pre)),
                     activation = 'linear' if is_last else get_custom_activation(KLips, func),
                     bias_initializer = 'random_normal',
                     kernel_regularizer = regularizer
