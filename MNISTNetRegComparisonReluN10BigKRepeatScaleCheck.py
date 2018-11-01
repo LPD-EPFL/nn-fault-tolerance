@@ -21,9 +21,9 @@ from experiment_mnist import *
 from tfshow import *
 import pickle
 
-Layers = 10
-KLips = 10
-NNeurons = 10
+Layers = 5
+KLips = 1
+NNeurons = 100
 activation = 'relu'
 scaler = 100.0
 epochs = 1000
