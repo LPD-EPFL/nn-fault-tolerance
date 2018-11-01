@@ -21,12 +21,13 @@ from experiment_mnist import *
 from tfshow import *
 import pickle
 
-Layers = 5
+N = [200, 150, 100, 50, 20]
+Layers = len(N)
 KLips = 1
 NNeurons = 100
 activation = 'relu'
-scaler = 100.0
-epochs = 1000
+scaler = 1.0
+epochs = 100
 inputs = 1000
 acc_param = 1000
 
@@ -35,7 +36,8 @@ def get_results(pfirst = 0.5, reg_type = 'delta', reg_coeff = 1e-4, repetition =
         return {}
     print('Parameters', pfirst, reg_type, reg_coeff, repetition)
     P = [pfirst] + [0] * (Layers - 1)
-    N = [NNeurons] * Layers
+#    N = [NNeurons] * Layers
+    N = 
     
     name = 'pfirst_%s_reg_type_%s_coeff_%s_repetition_%s' % (str(pfirst), str(reg_type), str(reg_coeff), str(repetition))
     
