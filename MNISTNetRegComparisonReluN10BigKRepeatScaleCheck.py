@@ -37,7 +37,6 @@ def get_results(pfirst = 0.5, reg_type = 'delta', reg_coeff = 1e-4, repetition =
     print('Parameters', pfirst, reg_type, reg_coeff, repetition)
     P = [pfirst] + [0] * (Layers - 1)
 #    N = [NNeurons] * Layers
-    N = 
     
     name = 'pfirst_%s_reg_type_%s_coeff_%s_repetition_%s' % (str(pfirst), str(reg_type), str(reg_coeff), str(repetition))
     
@@ -62,7 +61,8 @@ def get_results(pfirst = 0.5, reg_type = 'delta', reg_coeff = 1e-4, repetition =
     return results
 
 pfirst_options = [0.06]#np.linspace(0, 0.2, 6)[1:-1]
-reg_type_options = ['delta', 'l1', 'l2', 0]
+#reg_type_options = ['delta', 'l1', 'l2', 0]
+reg_type_options = ['delta_network']
 reg_coeff_options = [0] + list(np.logspace(-10, 0, 6))[:-1]
 repetitions = list(range(12)[worker::nProc])
 
