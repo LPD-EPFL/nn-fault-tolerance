@@ -149,7 +149,7 @@ for k, repetition in enumerate(repetitions_):
 
     # calculating and sending progress
     trained += 1
-    delta_sec = int((time() - tstart) / trained * total)
+    delta_sec = int((time() - tstart) / trained * (total - trained))
     eta_h = delta_sec // 3600
     eta_m = (delta_sec - eta_h * 3600) // 60
     eta_s = delta_sec - eta_h * 3600 - eta_m * 60
