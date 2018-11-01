@@ -22,6 +22,7 @@ from matplotlib import pyplot as plt
 import numpy as np
 from keras import backend as K
 from experiment_mnist import *
+from time import time, sleep
 from tfshow import *
 import pickle
 
@@ -48,7 +49,7 @@ inputs = 1000
 acc_param = 1000
 
 # p failure at first level
-pfirst_options = [0.06]#np.linspace(0, 0.2, 6)[1:-1]
+pfirst_options = [0.5]#np.linspace(0, 0.5, 5)[1:]
 
 # regularization types
 reg_type_options = ['delta', 'delta_network', 'l1', 'l2', 0]
@@ -124,6 +125,9 @@ print('Repetitions', repetitions_)
 total = len(pfirst_options) * len(repetitions_) * len(reg_type_options) * len(reg_coeff_options)
 print('Need to run: %d' % total)
 
+if worker == 0:
+  os.system("telegram-send 'N %s P %s Reg %s Coeff %s Repetitions %d'" % (N, pfirst_options, reg_type_options, reg_coeff_options, len(repetitions_)))
+
 # empty dict
 results = {}
 
@@ -132,13 +136,23 @@ results['info'] = (pfirst_options, reg_type_options, reg_coeff_options, repetiti
 
 # RUNNING the experiment
 trained = 0
-for repetition in repetitions_:
- os.system("telegram-send 'Process %d/%d progress %d / %s, total %d trainings, done %d'" % (worker + 1, nProc, repetition, repetitions_, total, trained))
+tstart = time()
+for k, repetition in enumerate(repetitions_):
  for reg_coeff in reg_coeff_options:
   for reg_type in reg_type_options:
    for pfirst in pfirst_options:
-
     results[(pfirst, reg_type, reg_coeff, repetition)] = get_results(pfirst = pfirst, reg_type = reg_type, reg_coeff = reg_coeff, repetition = repetition)
+    #sleep(10)
+
     # saving data at each iteration to prevent data loss
     pickle.dump(results, open('results_%d.pkl' % worker, 'wb'))
+
+    # calculating and sending progress
     trained += 1
+    delta_sec = int((time() - tstart) / trained * total)
+    eta_h = delta_sec // 3600
+    eta_m = (delta_sec - eta_h * 3600) // 60
+    eta_s = delta_sec - eta_h * 3600 - eta_m * 60
+    os.system("telegram-send 'Process %d/%d progress %d/%d ETA %02d:%02d:%02d'" % (worker + 1, nProc, trained, total, eta_h, eta_m, eta_s))
+
+os.system("telegram-send 'Process %d/%d done'" % (worker + 1, nProc))

@@ -238,7 +238,7 @@ class Experiment():
       print('Tightness  %.1f%% Std %.1f%%' % (100 * mean_exp / mean_bound, 100 * std_exp / std_bound))
 
     # Returning summary
-    return mean_exp, std_exp, mean_bound, std_bound, np.mean(trues), np.std(trues), get_mean_error_v2()
+    return mean_exp, std_exp, mean_bound, std_bound, np.mean(trues), np.std(trues), self.get_mean_error_v2()
 
   def bad_input_search(self, random_seed = 42, repetitions = 1000, to_add = 20, to_keep = 5, maxiter = 20, scaler = 1, use_std = False):
     # Trying genetic search for x
