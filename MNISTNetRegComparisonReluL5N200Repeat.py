@@ -121,18 +121,24 @@ print('N', N)
 print('Reg', reg_type_options)
 print('Coeff', reg_coeff_options)
 print('Repetitions', repetitions_)
-print('Need to run: %d' % (len(pfirst_options) * len(repetitions_) * ((len(reg_type_options)) * (len(reg_coeff_options)) + 1)))
+total = len(pfirst_options) * len(repetitions_) * len(reg_type_options) * len(reg_coeff_options)
+print('Need to run: %d' % total)
+
+# empty dict
+results = {}
 
 # saving info
 results['info'] = (pfirst_options, reg_type_options, reg_coeff_options, repetitions, N, Layers, KLips, activation, scaler, epochs, inputs, acc_param)
 
 # RUNNING the experiment
-results = {(pfirst, reg_type, reg_coeff, repetition): get_results(pfirst = pfirst, reg_type = reg_type, reg_coeff = reg_coeff, repetition = repetition)
- for repetition in repetitions_
- for reg_coeff in reg_coeff_options
- for reg_type in reg_type_options
- for pfirst in pfirst_options
-}
+trained = 0
+for repetition in repetitions_:
+ os.system("telegram-send 'Process %d/%d progress %d / %s, total %d trainings, done %d'" % (worker + 1, nProc, repetition, repetitions_, total, trained))
+ for reg_coeff in reg_coeff_options:
+  for reg_type in reg_type_options:
+   for pfirst in pfirst_options:
 
-# saving data
-pickle.dump(results, open('results_repeat%d.pkl' % worker, 'wb'))
+    results[(pfirst, reg_type, reg_coeff, repetition)] = get_results(pfirst = pfirst, reg_type = reg_type, reg_coeff = reg_coeff, repetition = repetition)
+    # saving data at each iteration to prevent data loss
+    pickle.dump(results, open('results_%d.pkl' % worker, 'wb'))
+    trained += 1
