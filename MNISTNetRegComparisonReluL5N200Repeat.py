@@ -49,13 +49,13 @@ inputs = 1000
 acc_param = 1000
 
 # p failure at first level
-pfirst_options = [0.5]#np.linspace(0, 0.5, 5)[1:]
+pfirst_options = [0.3, 0.5]#np.linspace(0, 0.5, 5)[1:]
 
 # regularization types
 reg_type_options = ['delta', 'delta_network', 'l1', 'l2', 0]
 
 # regularization coeffs
-reg_coeff_options = [0] + list(np.logspace(-10, 0, 6))[:-1]
+reg_coeff_options = [0] + list(np.logspace(-10, -3, 8))
 
 # repetitions for all processes
 repetitions = list(range(12))
