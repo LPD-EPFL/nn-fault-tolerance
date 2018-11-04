@@ -122,7 +122,7 @@ def create_random_weight_model(Ns, p_fails, p_bound, KLips, func = 'sigmoid', re
         regularizer = get_kernel_reg(i, errors, is_last, KLips = KLips, lambda_ = reg_coeff, C = C_arr[i - 1], p = p_bound[i])
     elif reg_type  == 'delta_network':
         regularizer = get_kernel_reg_v2(i, errors, is_last, KLips = KLips, lambda_ = reg_coeff, C = C_per_neuron_arr[i - 1], p = p_bound[i])
-    elif reg_type == 0:
+    elif reg_type == 0 or reg_type == 'dropout':
         regularizer = lambda w : 0
 
     # adding dense layer with sigmoid for hidden and linear for last layer

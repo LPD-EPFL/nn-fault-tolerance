@@ -52,13 +52,13 @@ acc_param = 1000
 pfirst_options = [0.3, 0.5]#np.linspace(0, 0.5, 5)[1:]
 
 # regularization types
-reg_type_options = ['delta', 'delta_network', 'l1', 'l2', 0]
+reg_type_options = ['dropout'] #['delta', 'delta_network', 'l1', 'l2', 0]
 
 # regularization coeffs
-reg_coeff_options = [0] + list(np.logspace(-10, -3, 8))
+reg_coeff_options = list(np.linspace(0, 1, 11)[1:-1])#+ list(np.logspace(-10, -3, 8))
 
 # repetitions for all processes
-repetitions = list(range(12))
+repetitions = list(range(24))
 
 # repetitions for this process
 repetitions_ = repetitions[worker::nProc]

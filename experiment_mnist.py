@@ -17,7 +17,11 @@ class MNISTExperiment(ConstantExperiment):
     """ Fill in the weights and initialize models """
    
     self.x_train, self.y_train, self.x_test, self.y_test = get_mnist(out_scaler = scaler, in_scaler = 1.)
-    
+
+    # dropout regularization    
+    if reg_type == 'dropout':
+        train_dropout = [reg_coeff] + [0] * (len(N) - 1)
+
     if not train_dropout:
         train_dropout = [0] * len(N)
 
