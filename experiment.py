@@ -40,7 +40,7 @@ class Experiment():
     # output for each layer https://stackoverflow.com/questions/41711190/keras-how-to-get-the-output-of-each-layer
     model = self.model_no_dropout
     inp = model.input
-    outputs = [K.mean(K.abs(layer.output), axis = 0) for layer in model.layers[:-1]] # mean over inputs, per-neuron
+    outputs = [K.mean(K.abs(layer.output), axis = 0) for layer in self.layers] # mean over inputs, per-neuron
     self.mean_per_neuron = lambda x : (K.function([inp, K.learning_phase()], outputs))([x, 1])
     
   def predict_no_dropout(self, data):

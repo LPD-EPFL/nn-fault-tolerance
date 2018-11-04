@@ -20,7 +20,7 @@ class MNISTExperiment(ConstantExperiment):
 
     # dropout regularization    
     if reg_type == 'dropout':
-        train_dropout = [reg_coeff] + [0] * (len(N) - 1)
+        train_dropout = [0, reg_coeff] + [0] * (len(N) - 2)
 
     if not train_dropout:
         train_dropout = [0] * len(N)
@@ -33,6 +33,9 @@ class MNISTExperiment(ConstantExperiment):
     Experiment.__init__(self, N, P, KLips, activation, do_print = False, name = name)
     model, self.reg, self.errors = create_random_weight_model(N, train_dropout, self.P, KLips, activation, reg_type = reg_type, reg_coeff = reg_coeff, C_arr = self.C_arr, C_per_neuron_arr = self.C_per_neuron_arr)
     self.model_no_dropout = model
+    self.layers = model.layers[:-1]
+    if reg_type == 'dropout':
+        self.layers = self.layers[:1] + self.layers[2:]
     self.create_supplementary_functions()
 
     self.C_history = []
