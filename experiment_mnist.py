@@ -103,6 +103,7 @@ class MNISTExperiment(ConstantExperiment):
       
     # creating "crashing" and "normal" models
     ConstantExperiment.__init__(self, N, P, KLips, W, B, activation, do_print, name = name)
+    self.layers = self.model_no_dropout.layers[:-1]
 
   def get_accuracy(self, inputs = 1000, repetitions = 1000, tqdm_ = lambda x : x, no_dropout = False):
     if no_dropout: repetitions = 1
