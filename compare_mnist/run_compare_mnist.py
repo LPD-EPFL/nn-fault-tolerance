@@ -28,7 +28,7 @@ from experiment_mnist import *
 N = [200, 100, 80, 50, 20]
 P = [0.5,  0,  0,  0,  0]
 KLips = 1.
-repetitions = list(range(1500))
+repetitions = list(range(900))
 
 def get_point(name = ''):
   """ Perform an experiment once: train the network and get its error """
