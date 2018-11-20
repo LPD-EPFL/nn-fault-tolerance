@@ -199,12 +199,12 @@ class Experiment():
     for w in self.W[::-1]:
       R = R @ w.T
 
-    def operator_norm(op, vect):
-      # compute operator norm on vector inp
-      return np.linalg.norm(op @ vect.reshape(-1, 1)) / np.linalg.norm(vect)
+#    def operator_norm(op, vect):
+#      # compute operator norm on vector inp
+#      return np.linalg.norm(op @ vect.reshape(-1, 1)) / np.linalg.norm(vect)
 
     # computing errors
-    err = [self.P[1] * operator_norm(R, inp) for inp in self.get_inputs(inputs)]
+    err = [self.P[1] * np.linalg.norm(R @ inp) for inp in self.get_inputs(inputs)]
 
     # returning mean error
     return np.mean(err)
