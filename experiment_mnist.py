@@ -9,7 +9,7 @@ from functools import partial
 import sys
 
 class MNISTExperiment(ConstantExperiment):
-  def __init__(self, N, P, KLips, epochs = 20, activation = 'sigmoid', update_C_inputs = 1000, reg_type = 0, reg_coeff = 0.01, do_print = False, scaler = 1.0, name = 'exp'):
+  def __init__(self, N, P, KLips, epochs = 20, activation = 'sigmoid', update_C_inputs = 1000, reg_type = 0, reg_coeff = 0.01, do_print = False, scaler = 1.0, name = 'exp', train_dropout_l1 = 0):
     N = [28 ** 2] + N + [10]
 #    if type(P) == list:
 #        P = [0] + P + [0]
@@ -26,7 +26,7 @@ class MNISTExperiment(ConstantExperiment):
     self.activation = activation
 
     Experiment.__init__(self, N, P, KLips, activation, do_print = False, name = name)
-    model, self.reg, self.errors = create_random_weight_model(N, train_dropout, self.P, KLips, activation, reg_type = reg_type, reg_coeff = reg_coeff, C_arr = self.C_arr, C_per_neuron_arr = self.C_per_neuron_arr)
+    model, self.reg, self.errors = create_random_weight_model(N, train_dropout, self.P, KLips, activation, reg_type = reg_type, reg_coeff = reg_coeff, C_arr = self.C_arr, C_per_neuron_arr = self.C_per_neuron_arr, train_dropout_l1 = train_dropout_l1)
     self.model_no_dropout = model
     self.layers = model.layers[:-1]
     if reg_type == 'dropout':

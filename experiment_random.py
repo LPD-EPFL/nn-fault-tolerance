@@ -14,7 +14,7 @@ class RandomExperiment(ConstantExperiment):
     # loop over layers
     for i in range(1, len(N)):
       # creating w and b
-      w = np.random.randn(N[i - 1], N[i]) / (N[i - 1]) * 5 + 1
+      w = np.random.randn(N[i - 1], N[i]) / (N[i - 1]) * 5 + 0.01
       b = np.random.randn(N[i]) / N[i]
       
       # adding them to the array
