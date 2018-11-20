@@ -192,6 +192,22 @@ class Experiment():
 
     # Returning mean and sqrt(std^2)
     return EDelta
+
+  def get_mean_error_v3(self, inputs = 100):
+    # computing total weight matrix
+    R = np.eye(self.N[-1])
+    for w in self.W[::-1]:
+      R = R @ w.T
+
+    def operator_norm(op, vect):
+      # compute operator norm on vector inp
+      return np.linalg.norm(op @ vect.reshape(-1, 1)) / np.linalg.norm(vect)
+
+    # computing errors
+    err = [self.P[1] * operator_norm(R, inp) for inp in self.get_inputs(inputs)]
+
+    # returning mean error
+    return np.mean(err)
   
   def run(self, repetitions = 10000, inputs = 50, do_plot = True, do_print = True, do_tqdm = True, randn = None, inputs_update = None):
     """ Run a single experiment with a fixed network """
@@ -238,7 +254,7 @@ class Experiment():
       print('Tightness  %.1f%% Std %.1f%%' % (100 * mean_exp / mean_bound, 100 * std_exp / std_bound))
 
     # Returning summary
-    return mean_exp, std_exp, mean_bound, std_bound, np.mean(trues), np.std(trues), self.get_mean_error_v2()
+    return mean_exp, std_exp, mean_bound, std_bound, np.mean(trues), np.std(trues), self.get_mean_error_v2(), self.get_mean_error_v3()
 
   def bad_input_search(self, random_seed = 42, repetitions = 1000, to_add = 20, to_keep = 5, maxiter = 20, scaler = 1, use_std = False):
     # Trying genetic search for x

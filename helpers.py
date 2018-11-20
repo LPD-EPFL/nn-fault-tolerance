@@ -127,7 +127,7 @@ def create_random_weight_model(Ns, p_fails, p_bound, KLips, func = 'sigmoid', re
 
     # adding dense layer with sigmoid for hidden and linear for last layer
     model.add(Dense(Ns[i + 1], input_shape = (Ns[i], ),
-                    kernel_initializer = Constant(np.random.randn(N_pre, N_post) * np.sqrt(2. / N_pre)),
+                    kernel_initializer = Constant(np.random.randn(N_pre, N_post) * np.sqrt(2. / N_pre) / KLips),
                     activation = 'linear' if is_last else get_custom_activation(KLips, func),
                     bias_initializer = 'random_normal',
                     kernel_regularizer = regularizer

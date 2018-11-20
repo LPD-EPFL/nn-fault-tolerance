@@ -9,7 +9,7 @@ from functools import partial
 import sys
 
 class MNISTExperiment(ConstantExperiment):
-  def __init__(self, N, P, KLips, epochs = 20, activation = 'sigmoid', update_C_inputs = 1000, reg_type = 0, reg_coeff = 0.01, do_print = False, scaler = 1.0, name = 'exp'):
+  def __init__(self, N, P, KLips, epochs = 20, activation = 'sigmoid', update_C_inputs = 1000, reg_type = 0, reg_coeff = 0.01, train_dropout = None, do_print = False, scaler = 1.0, name = 'exp'):
     N = [28 ** 2] + N + [10]
 #    if type(P) == list:
 #        P = [0] + P + [0]
@@ -18,7 +18,12 @@ class MNISTExperiment(ConstantExperiment):
    
     self.x_train, self.y_train, self.x_test, self.y_test = get_mnist(out_scaler = scaler, in_scaler = 1.)
 
-    train_dropout = [0] * len(N)
+    # dropout regularization    
+    if reg_type == 'dropout':
+        train_dropout = [0, reg_coeff] + [0] * (len(N) - 2)
+
+    if not train_dropout:
+        train_dropout = [0] * len(N)
 
     self.C_arr = []
     self.C_per_neuron_arr = []
@@ -33,12 +38,54 @@ class MNISTExperiment(ConstantExperiment):
         self.layers = self.layers[:1] + self.layers[2:]
     self.create_supplementary_functions()
 
-    history = model.fit(self.x_train, self.y_train, verbose = do_print, batch_size = 10000, epochs = epochs, validation_data = (self.x_test, self.y_test))
+    self.C_history = []
+
+    history = []
+    self.EDeltaHistory = []
+    self.EDeltaV2History = []
+    tqdm_ = tqdm if do_print else lambda x : x
+    sys.stdout.flush()
+    for i in tqdm_(range(epochs)):
+        if activation == 'relu':
+            self.reset_C()
+            self.update_C_train(update_C_inputs)
+            self.C_history += [self.C]
+        # weights and biases
+        self.W = model.get_weights()[0::2]
+        self.B = model.get_weights()[1::2]
+        self.EDeltaHistory += [self.get_mean_std_error()]
+        self.EDeltaV2History += [np.mean(self.get_mean_error_v2())]
+        history += [model.fit(self.x_train, self.y_train, verbose = 0, batch_size = 10000, epochs = 1, validation_data = (self.x_test, self.y_test))]
 
     self.reset_C()
 
-    val_acc = history.history['val_acc']
-    acc = history.history['acc']
+    plt.figure()
+    plt.title('Delta bound during training')
+    plt.xlabel('Epoch')
+    plt.ylabel('Delta bound')
+    means, stds = zip(*self.EDeltaHistory)
+    plt.plot(means, label = 'Mean delta')
+    plt.plot(self.EDeltaV2History, label = 'Bound v2')
+    means = np.array(means)
+    stds = np.array(stds)
+    plt.fill_between(range(len(means)), means - stds, means + stds, color = 'green', alpha = 0.2, label = 'Std delta')
+    plt.legend()
+    plt.savefig('delta_bound_training_' + name + '.png')
+    plt.show()
+
+    if do_print and activation == 'relu':
+        plt.figure()
+        plt.title('C during training')
+        plt.xlabel('Epoch')
+        plt.ylabel('C')
+        for layer, data in enumerate(zip(*self.C_history)):
+            plt.plot([np.mean(x) for x in data], label = 'Layer %d' % (layer + 1))
+        plt.legend()
+        plt.savefig('C_training_' + name + '.png')
+        plt.show()
+
+    val_acc = [value for epoch in history for value in epoch.history['val_acc']]
+    acc = [value for epoch in history for value in epoch.history['acc']]
 
     if do_print:
       plt.figure()
@@ -71,7 +118,7 @@ class MNISTExperiment(ConstantExperiment):
     return np.sum(correct) / (inputs * repetitions)
   def get_inputs(self, how_many):
     x = np.vstack((self.x_train, self.x_test))
-    indices = np.random.choice(x.shape[0], how_many, replace = False)
+    indices = np.random.choice(x.shape[0], how_many)
     return x[indices, :]
   def update_C_train(self, inputs):
     self.update_C(self.get_inputs(inputs))
