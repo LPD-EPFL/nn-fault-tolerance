@@ -256,6 +256,10 @@ class Experiment():
     # Returning summary
     return mean_exp, std_exp, mean_bound, std_bound, np.mean(trues), np.std(trues), self.get_mean_error_v2(), self.get_mean_error_v3()
 
+  def weights_norm(self, ord = 1):
+    """ Calculate the norm of the weights """
+    return sum([np.linalg.norm(w, ord = ord) for w in self.W])
+
   def bad_input_search(self, random_seed = 42, repetitions = 1000, to_add = 20, to_keep = 5, maxiter = 20, scaler = 1, use_std = False):
     # Trying genetic search for x
     np.random.seed(random_seed)
