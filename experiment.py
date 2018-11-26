@@ -2,6 +2,7 @@ from helpers import *
 import numpy as np
 from tqdm import tqdm
 from matplotlib import pyplot as plt
+from scipy.special import expit
 
 class Experiment():
   """ One experiment on neuron crash, contains a fixed weights network """
@@ -201,7 +202,7 @@ class Experiment():
       return self.K * x
     elif self.activation == 'sigmoid':
       return expit(4 * self.K * x)
-    else raise(NotImplementedError("Activation %s is not implemented yet" % self.activation))
+    else: raise(NotImplementedError("Activation %s is not implemented yet" % self.activation))
 
   def activation_grad(self, x):
     """ Get activation function gradient at x """
@@ -210,7 +211,7 @@ class Experiment():
     elif self.activation == 'sigmoid':
       r = expit(self.K * 4 * x)
       return 4 * self.K * np.multiply(r, 1 - r)
-    else raise(NotImplementedError("Activation %s is not implemented yet" % self.activation))
+    else: raise(NotImplementedError("Activation %s is not implemented yet" % self.activation))
  
   def forward_pass_manual(self, x):
     """ Manual forward pass (for assertions) """
@@ -220,7 +221,28 @@ class Experiment():
       if i < ilast: x = self.activation_fcn(x)
     return x
 
-  def get_mean_error_v3_exact(self, x, ifail = 0):
+  def get_activations(self, x):
+    """ Get Lipschitz coefficients of act. functions per layer """
+    # last layer has no activation fcn
+    ilast = len(self.W) - 1
+
+    # the resulting activations
+    results = []
+
+    # loop over layers
+    for i, (w, b) in enumerate(zip(self.W, self.B)):
+      # computing forward pass...
+      x = w.T @ x + b.reshape(-1, 1)
+
+      # applying activation and KLocal if there is an activation function (all but last layer)
+      if i < ilast:
+        Klocal = self.activation_grad(x)
+        x = self.activation_fcn(x)
+        results += [Klocal]
+
+    return results
+
+  def get_exact_error_v3(self, x, ifail = 0):
     """ Exact error for a given input. ifail = 0 for first layer or -1 for failing input """
     # last layer has no activation fcn
     ilast = len(self.W) - 1
