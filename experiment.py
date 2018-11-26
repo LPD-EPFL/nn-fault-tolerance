@@ -193,6 +193,75 @@ class Experiment():
     # Returning mean and sqrt(std^2)
     return EDelta
 
+  def activation_fcn(self, x):
+    """ Get activation function at x """
+    if self.activation == 'relu':
+      x = np.copy(x)
+      x[x < 0] = 0
+      return self.K * x
+    elif self.activation == 'sigmoid':
+      return expit(4 * self.K * x)
+    else raise(NotImplementedError("Activation %s is not implemented yet" % self.activation))
+
+  def activation_grad(self, x):
+    """ Get activation function gradient at x """
+    if self.activation == 'relu':
+      return self.K * 1. * (x >= 0)
+    elif self.activation == 'sigmoid':
+      r = expit(self.K * 4 * x)
+      return 4 * self.K * np.multiply(r, 1 - r)
+    else raise(NotImplementedError("Activation %s is not implemented yet" % self.activation))
+ 
+  def forward_pass_manual(self, x):
+    """ Manual forward pass (for assertions) """
+    ilast = len(self.W) - 1
+    for i, (w, b) in enumerate(zip(self.W, self.B)):
+      x = w.T @ x + b.reshape(-1, 1)
+      if i < ilast: x = self.activation_fcn(x)
+    return x
+
+  def get_mean_error_v3_exact(self, x, ifail = 0):
+    """ Exact error for a given input. ifail = 0 for first layer or -1 for failing input """
+    # last layer has no activation fcn
+    ilast = len(self.W) - 1
+
+    # probability of failure
+    p = max(self.P)
+
+    # the error (will be redefined if ifail >= 0)
+    error = -p * np.copy(x)
+
+    # loop over layers
+    for i, (w, b) in enumerate(zip(self.W, self.B)):
+      # computing forward pass...
+      x = w.T @ x + b.reshape(-1, 1)
+
+      # obtaining local Lipschitz coefficient (the derivative)
+      Klocal = np.ones(x.shape)
+
+      # applying activation and KLocal if there is an activation function (all but last layer)
+      if i < ilast:
+        Klocal = self.activation_grad(x)
+        x = self.activation_fcn(x)
+
+      # at the failing layer, copying output...
+      if i == ifail:
+        error = -p * np.copy(x)
+
+      # at later stages propagating the failure
+      elif i > ifail:
+        # multiplying by the weight matrix
+        error = w.T @ error
+
+        # checking that can multiply element-wise with Klocal (Lipschitz coeffs)
+        assert Klocal.shape == error.shape, "Shapes Klocal=%s error=%s must agree" % (str(Klocal.shape), str(error.shape))
+
+        # multiplying by the activation
+        error = np.multiply(Klocal, error)
+
+    # return signed error
+    return error
+
   def get_mean_error_v3(self, inputs = 100):
     # computing total weight matrix
     R = np.eye(self.N[-1])
@@ -204,10 +273,10 @@ class Experiment():
 #      return np.linalg.norm(op @ vect.reshape(-1, 1)) / np.linalg.norm(vect)
 
     # computing errors
-    err = [self.P[1] * np.linalg.norm(R @ inp) for inp in self.get_inputs(inputs)]
+    err = [np.linalg.norm(R @ inp) for inp in self.get_inputs(inputs)]
 
     # returning mean error
-    return np.mean(err)
+    return max(self.P) * np.mean(err)
   
   def run(self, repetitions = 10000, inputs = 50, do_plot = True, do_print = True, do_tqdm = True, randn = None, inputs_update = None):
     """ Run a single experiment with a fixed network """
