@@ -284,18 +284,21 @@ class Experiment():
     # return signed error
     return error
 
-  def get_mean_error_v3(self, inputs = 100):
+  def get_norm_error(self, ord = 2):
+    """ Compute error for arbitrary norm, see Article section 2.2 """
+    res = max(self.P)
+    for w in self.W:
+      res *= np.linalg.norm(w, ord = ord)
+    return res
+
+  def get_mean_error_v3(self, data):
     # computing total weight matrix
     R = np.eye(self.N[-1])
     for w in self.W[::-1]:
       R = R @ w.T
 
-#    def operator_norm(op, vect):
-#      # compute operator norm on vector inp
-#      return np.linalg.norm(op @ vect.reshape(-1, 1)) / np.linalg.norm(vect)
-
     # computing errors
-    err = [np.linalg.norm(R @ inp) for inp in self.get_inputs(inputs)]
+    err = [np.linalg.norm(R @ inp) for inp in data]
 
     # returning mean error
     return max(self.P) * np.mean(err)
@@ -306,6 +309,7 @@ class Experiment():
     # Creating input data
     data = self.get_inputs(inputs)
 
+    # computing max value per neuron for ReLU
     if self.activation == 'relu':
         self.update_C(data)
         if randn:
@@ -313,7 +317,13 @@ class Experiment():
         if inputs_update:
             self.update_C(self.get_inputs(inputs_update))
 
-    if inputs == 0: return (0, 0, 0, 0, 0)
+    # no inputs -> no output
+    if inputs == 0: return None
+
+    # computing error v3
+    mean_v3_approx = self.get_mean_error_v3(data)
+    mean_v3_exact = [self.get_exact_error_v3(x) for x in data]
+    mean_v2 = self.get_mean_error_v2()
 
     # Computing true values
     trues = [self.predict_no_dropout(value) for value in data]
@@ -340,12 +350,16 @@ class Experiment():
     if do_print:
       print('Error; maximal over inputs, average over dropout:')
       print('True values array mean: %f variance %f' % (np.mean(trues), np.std(trues)))
-      print('Experiment %f Std %f' % (mean_exp, std_exp))
-      print('Equation   %f Std %f' % (mean_bound, std_bound))
+      print('Experiment    %f Std %f' % (mean_exp, std_exp))
+      print('Bound v1      %f Std %f' % (mean_bound, std_bound))
+      print('Bound v2      %f' % np.mean(mean_v2))
+      print('Bound v3 app  %f' % np.mean(mean_v3_approx))
+      print('Bound v3 exct %f' % np.mean(mean_v3_exact))
       print('Tightness  %.1f%% Std %.1f%%' % (100 * mean_exp / mean_bound, 100 * std_exp / std_bound))
 
     # Returning summary
-    return mean_exp, std_exp, mean_bound, std_bound, np.mean(trues), np.std(trues), self.get_mean_error_v2(), self.get_mean_error_v3()
+    return {'error_exp_mean': mean_exp, 'error_exp_std': std_exp, 'error_v1_mean': mean_bound, 'error_v1_std': std_bound, 'output': trues, 'error_v2_mean': mean_v2, 'error_v3_mean_approx': mean_v3_approx, 'error_v3_mean_exact': mean_v3_exact, 'input': data, 'error_exp': errors}
+             
 
   def weights_norm(self, ord = 1):
     """ Calculate the norm of the weights """
