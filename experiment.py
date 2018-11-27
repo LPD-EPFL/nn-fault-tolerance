@@ -358,20 +358,33 @@ class Experiment():
     # todo: make it one forward pass for each x
     activations = [[np.mean(y) for y in self.get_activations(x)] for x in data]
 
+    # product of the norms of matrices
+    norm_l1 = self.get_norm_error(ord = 1)
+    norm_l2 = self.get_norm_error(ord = 2)
+
+    # sum of the norms of matrices
+    norm_s_l1 = self.weights_norm(ord = 1)
+    norm_s_l2 = self.weights_norm(ord = 2)
+    norm_s_F = self.weights_norm(ord = 'fro')
+
     # Printing results summary
     if do_print:
-      print('Error; maximal over inputs, average over dropout:')
+      print('Absolute Error; average over inputs, average over dropout:')
       print('True values array mean: %f variance %f' % (np.mean(trues), np.std(trues)))
-      print('Experiment    %f Std %f' % (mean_exp, std_exp))
+      print('Bound L1Prod  %f' % np.max(np.abs(norm_l1)))
+      print('Bound L2Prod  %f' % np.max(np.abs(norm_l2)))
+      print('Bound L1Sum   %f' % np.max(np.abs(norm_s_l1)))
+      print('Bound L2Sum   %f' % np.max(np.abs(norm_s_l2)))
+      print('Bound FSum    %f' % np.max(np.abs(norm_s_F)))
       print('Bound v1      %f Std %f' % (mean_bound, std_bound))
       print('Bound v2      %f' % np.mean(mean_v2))
       print('Bound v3 app  %f' % np.max(np.mean(np.abs(mean_v3_approx), axis = 1)))
       print('Bound v3 exct %f' % np.max(np.mean(np.abs(mean_v3_exact), axis = 1)))
+      print('Experiment    %f Std %f' % (mean_exp, std_exp))
       print('MeanAct %s' % str(np.mean(activations, axis = 0)))
-      print('Tightness  %.1f%% Std %.1f%%' % (100 * mean_exp / mean_bound, 100 * std_exp / std_bound))
 
     # Returning summary
-    return {'error_exp_mean': mean_exp, 'error_exp_std': std_exp, 'error_v1_mean': mean_bound, 'error_v1_std': std_bound, 'output': trues, 'error_v2_mean': mean_v2, 'error_v3_mean_approx': mean_v3_approx, 'error_v3_mean_exact': mean_v3_exact, 'input': data, 'error_exp': errors}
+    return {'error_exp_mean': mean_exp, 'error_exp_std': std_exp, 'error_v1_mean': mean_bound, 'error_v1_std': std_bound, 'output': trues, 'error_v2_mean': mean_v2, 'error_v3_mean_approx': mean_v3_approx, 'error_v3_mean_exact': mean_v3_exact, 'input': data, 'error_exp': errors, 'error_matnorm_prod_l1': norm_l1, 'error_matnorm_prod_l2': norm_l2, 'error_matnorm_sum_l1': norm_s_l1, 'error_matnorm_sum_l2': norm_s_l2, 'error_matnorm_sum_F': norm_s_F}
              
 
   def weights_norm(self, ord = 1):
