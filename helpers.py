@@ -179,3 +179,24 @@ def create_model(p_fails, layer_weights, layer_biases, KLips, func = 'sigmoid'):
               metrics=['accuracy'])
   #model.summary()
   return model
+
+def generate_params(**kwargs):
+    """ Arguments -> array of dicts """
+    
+    # fetched the last parameter
+    if len(kwargs) == 0:
+        yield {}
+        return
+    
+    # some argument
+    param = list(kwargs.keys())[0]
+    
+    # the rest of the dictionary
+    kwargs1 = {x: y for x, y in kwargs.items() if x != param}
+    
+    # loop over kwargs data
+    for val in kwargs[param]:
+        # loop over experiments
+        for res in generate_params(**kwargs1):
+            res[param] = val
+            yield {x: y for x, y in res.items()}

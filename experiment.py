@@ -284,24 +284,32 @@ class Experiment():
     # return signed error
     return error
 
-  def get_norm_error(self, ord = 2):
+  def get_norm_error(self, ord = 2, do_abs = False):
     """ Compute error for arbitrary norm, see Article section 2.2 """
-    res = max(self.P)
-    for w in self.W:
-      res *= np.linalg.norm(w, ord = ord)
+    C = None
+    if self.activation == 'sigmoid':
+      C = self.C
+    elif self.activation == 'relu':
+      C = np.linalg.norm(self.C[0], ord = ord)
+    else: raise(NotImplementedError("Function does not work with activation " + self.activation))
+    res = max(self.P) * C
+    for w in self.W[1:]:
+      w1 = np.abs(w) if do_abs else w
+      res *= np.linalg.norm(w1.T, ord = ord)
     return res
 
-  def get_mean_error_v3(self, data):
+  def get_mean_error_v3(self, data, do_abs = False):
     # computing total weight matrix
     R = np.eye(self.N[-1])
     for w in self.W[::-1]:
-      R = R @ w.T
+      w1 = np.abs(w) if do_abs else w
+      R = R @ w1.T
 
     # computing errors
-    err = [np.linalg.norm(R @ inp) for inp in data]
+    err = [R @ inp for inp in data]
 
     # returning mean error
-    return max(self.P) * np.mean(err)
+    return max(self.P) * np.array(err)
   
   def run(self, repetitions = 10000, inputs = 50, do_plot = True, do_print = True, do_tqdm = True, randn = None, inputs_update = None):
     """ Run a single experiment with a fixed network """
@@ -333,7 +341,7 @@ class Experiment():
     errors = [self.get_error(value, repetitions = repetitions) for value in tqdm_(data)]
  
     # Computing Maximal Absolute Mean/Std Error over 
-    errors_abs = np.abs(errors)
+    errors_abs = errors
     means = np.mean(errors_abs, axis = 1)
     stds = np.std(errors_abs, axis = 1)
     mean_exp = np.max(means)
@@ -346,6 +354,10 @@ class Experiment():
     if do_plot:
       self.plot_error(np.array(errors).reshape(-1))
 
+    # get activations
+    # todo: make it one forward pass for each x
+    activations = [[np.mean(y) for y in self.get_activations(x)] for x in data]
+
     # Printing results summary
     if do_print:
       print('Error; maximal over inputs, average over dropout:')
@@ -353,8 +365,9 @@ class Experiment():
       print('Experiment    %f Std %f' % (mean_exp, std_exp))
       print('Bound v1      %f Std %f' % (mean_bound, std_bound))
       print('Bound v2      %f' % np.mean(mean_v2))
-      print('Bound v3 app  %f' % np.mean(mean_v3_approx))
-      print('Bound v3 exct %f' % np.mean(mean_v3_exact))
+      print('Bound v3 app  %f' % np.max(np.mean(np.abs(mean_v3_approx), axis = 1)))
+      print('Bound v3 exct %f' % np.max(np.mean(np.abs(mean_v3_exact), axis = 1)))
+      print('MeanAct %s' % str(np.mean(activations, axis = 0)))
       print('Tightness  %.1f%% Std %.1f%%' % (100 * mean_exp / mean_bound, 100 * std_exp / std_bound))
 
     # Returning summary
