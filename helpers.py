@@ -200,3 +200,28 @@ def generate_params(**kwargs):
         for res in generate_params(**kwargs1):
             res[param] = val
             yield {x: y for x, y in res.items()}
+
+def rank_loss(a, b):
+    """ For given a, b compute the average number of misordered pairs, O(n^2) """
+    
+    # flattening data
+    a, b = np.array(a).flatten(), np.array(b).flatten()
+    
+    # checking shape
+    assert len(a) == len(b), "Lengths must agree"
+    
+    # sorting b in order of a
+    b = np.array(b)[np.argsort(a)]
+    
+    # number of bad pairs
+    res = sum([sum([1 if i < j and x >= y else 0 for j, y in enumerate(b)]) for i, x in enumerate(b)])
+    
+    # total number of pairs
+    NN = len(a) * (len(a) - 1) / 2
+    
+    # return the ratio
+    return 1. * res / NN
+
+def compute_rank_losses(data, key):
+    """ Compute rank losses for a dict with data, referenced to key """
+    return {keyother: rank_loss(data[key], data[keyother]) for keyother in data.keys() if keyother != key}

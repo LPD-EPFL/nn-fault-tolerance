@@ -315,13 +315,17 @@ class Experiment():
     err = [R @ inp for inp in data]
 
     # returning mean error
-    return max(self.P) * np.array(err)
+    return -max(self.P) * np.array(err)
   
   def run(self, repetitions = 10000, inputs = 50, do_plot = True, do_print = True, do_tqdm = True, randn = None, inputs_update = None):
     """ Run a single experiment with a fixed network """
 
     # Creating input data
-    data = self.get_inputs(inputs)
+    if type(inputs) == int:
+        data = self.get_inputs(inputs)
+        # no inputs -> no output
+        if inputs == 0: return None
+    else: data = inputs
 
     # computing max value per neuron for ReLU
     if self.activation == 'relu':
@@ -331,8 +335,6 @@ class Experiment():
         if inputs_update:
             self.update_C(self.get_inputs(inputs_update))
 
-    # no inputs -> no output
-    if inputs == 0: return None
 
     # computing error v3
     mean_v3_approx = self.get_mean_error_v3(data)
@@ -385,7 +387,7 @@ class Experiment():
       print('Bound v1      %f Std %f' % (mean_bound, std_bound))
       print('Bound v2      %f' % np.mean(mean_v2))
       print('Bound v3 app  %f' % np.max(np.abs(mean_v3_approx)))
-      print('Bound v3 exct %f' % np.max(mean_v3_exact))
+      print('Bound v3 exct %f' % np.max(np.abs(mean_v3_exact)))
       print('Experiment    %f Std %f' % (mean_exp, std_exp))
       print('MeanAct %s' % str(np.mean(activations, axis = 0)))
 
