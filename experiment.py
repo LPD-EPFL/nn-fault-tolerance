@@ -244,6 +244,12 @@ class Experiment():
 
   def get_exact_error_v3(self, x, ifail = 0):
     """ Exact error for a given input. ifail = 0 for first layer or -1 for failing input """
+    # reshaping to a column vector if given a list or vector
+    if type(x) == list:
+       x = np.array(x).reshape(-1, 1)
+    elif len(x.shape) == 1:
+       x = x.reshape(-1, 1)
+
     # last layer has no activation fcn
     ilast = len(self.W) - 1
 
@@ -330,7 +336,7 @@ class Experiment():
 
     # computing error v3
     mean_v3_approx = self.get_mean_error_v3(data)
-    mean_v3_exact = [self.get_exact_error_v3(x) for x in data]
+    mean_v3_exact = self.get_exact_error_v3(np.array(data).T).T
     mean_v2 = self.get_mean_error_v2()
 
     # Computing true values
@@ -341,7 +347,7 @@ class Experiment():
     errors = [self.get_error(value, repetitions = repetitions) for value in tqdm_(data)]
  
     # Computing Maximal Absolute Mean/Std Error over 
-    errors_abs = errors
+    errors_abs = np.abs(errors)
     means = np.mean(errors_abs, axis = 1)
     stds = np.std(errors_abs, axis = 1)
     mean_exp = np.max(means)
@@ -378,14 +384,31 @@ class Experiment():
       print('Bound FSum    %f' % np.max(np.abs(norm_s_F)))
       print('Bound v1      %f Std %f' % (mean_bound, std_bound))
       print('Bound v2      %f' % np.mean(mean_v2))
-      print('Bound v3 app  %f' % np.max(np.mean(np.abs(mean_v3_approx), axis = 1)))
-      print('Bound v3 exct %f' % np.max(np.mean(np.abs(mean_v3_exact), axis = 1)))
+      print('Bound v3 app  %f' % np.max(np.abs(mean_v3_approx)))
+      print('Bound v3 exct %f' % np.max(mean_v3_exact))
       print('Experiment    %f Std %f' % (mean_exp, std_exp))
       print('MeanAct %s' % str(np.mean(activations, axis = 0)))
 
     # Returning summary
-    return {'error_exp_mean': mean_exp, 'error_exp_std': std_exp, 'error_v1_mean': mean_bound, 'error_v1_std': std_bound, 'output': trues, 'error_v2_mean': mean_v2, 'error_v3_mean_approx': mean_v3_approx, 'error_v3_mean_exact': mean_v3_exact, 'input': data, 'error_exp': errors, 'error_matnorm_prod_l1': norm_l1, 'error_matnorm_prod_l2': norm_l2, 'error_matnorm_sum_l1': norm_s_l1, 'error_matnorm_sum_l2': norm_s_l2, 'error_matnorm_sum_F': norm_s_F}
-             
+    return {
+     'input': data,
+     'activations': activations,
+     'output': trues,
+     'error_exp_mean': np.mean(errors, axis = 1),
+     'error_exp_std': np.std(errors, axis = 1),
+     'error_abs_exp_mean': np.mean(errors_abs, axis = 1),
+     'error_abs_exp_std': np.std(errors_abs, axis = 1),
+     'error_v1_mean': mean_bound,
+     'error_v1_std': std_bound,
+     'error_v2_mean': mean_v2,
+     'error_v3_mean_approx': mean_v3_approx,
+     'error_v3_mean_exact': mean_v3_exact,
+     'error_matnorm_prod_l1': norm_l1,
+     'error_matnorm_prod_l2': norm_l2,
+     'error_matnorm_sum_l1': norm_s_l1,
+     'error_matnorm_sum_l2': norm_s_l2,
+     'error_matnorm_sum_F': norm_s_F,
+    }
 
   def weights_norm(self, ord = 1):
     """ Calculate the norm of the weights """

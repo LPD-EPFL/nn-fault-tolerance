@@ -3,7 +3,7 @@ import numpy as np
 from helpers import *
 
 class RandomExperiment(ConstantExperiment):
-  def __init__(self, N, P, KLips, activation = 'sigmoid', do_print = False):
+  def __init__(self, N, P, KLips, activation = 'sigmoid', do_print = False, mean_weight = 0, std_weight = 1):
     
     # array with weight matrices
     W = []
@@ -14,8 +14,8 @@ class RandomExperiment(ConstantExperiment):
     # loop over layers
     for i in range(1, len(N)):
       # creating w and b
-      w = np.random.randn(N[i - 1], N[i]) / (N[i - 1]) * 5 + 0.01
-      b = np.random.randn(N[i]) / N[i]
+      w = np.random.randn(N[i - 1], N[i]) / (N[i - 1]) * std_weight + mean_weight
+      b = np.random.randn(N[i]) / N[i] * std_weight + mean_weight
       
       # adding them to the array
       W.append(w)
