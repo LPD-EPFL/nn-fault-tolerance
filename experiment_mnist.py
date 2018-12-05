@@ -1,8 +1,8 @@
-from experiment_constant import *
+from keras import backend as K
 from helpers import *
 import numpy as np
+from experiment_constant import *
 from matplotlib import pyplot as plt
-from keras import backend as K
 import pickle
 from tqdm import tqdm
 from functools import partial

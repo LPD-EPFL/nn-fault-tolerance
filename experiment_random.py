@@ -1,6 +1,6 @@
-from experiment_constant import ConstantExperiment
-import numpy as np
 from helpers import *
+import numpy as np
+from experiment_constant import ConstantExperiment
 
 class RandomExperiment(ConstantExperiment):
   def __init__(self, N, P, KLips, activation = 'sigmoid', do_print = False, mean_weight = 0, std_weight = 1):

@@ -1,19 +1,7 @@
-import os
-os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"   # see issue #152
-os.environ["CUDA_VISIBLE_DEVICES"]="0"
-
-import tensorflow as tf
-from keras.backend.tensorflow_backend import set_session
-
 # getting proc ID
 import sys
 nProc = int(sys.argv[1])
 worker = int(sys.argv[2])
-
-config = tf.ConfigProto()
-config.gpu_options.per_process_gpu_memory_fraction = 0.5
-config.gpu_options.allow_growth = True
-set_session(tf.Session(config=config))
 
 from time import time, sleep
 

@@ -1,6 +1,6 @@
-from experiment import Experiment
-import numpy as np
 from helpers import *
+import numpy as np
+from experiment import Experiment
 from keras import backend as K
 import helpers
 

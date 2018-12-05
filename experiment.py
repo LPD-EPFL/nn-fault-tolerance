@@ -356,6 +356,59 @@ class Experiment():
     res = np.sqrt(res)
     return res
 
+  def get_exact_std_error_v3(self, x, ifail = 0):
+    """ Exact error std for a given input. ifail = 0 for first layer or -1 for failing input """
+
+    if not hasattr(self, 'get_exact_std_error_v3_complained'):
+        print("This function does not result in true variance: self.get_exact_std_error_v3")
+    self.get_exact_std_error_v3_complained = True
+
+    # reshaping to a column vector if given a list or vector
+    if type(x) == list:
+       x = np.array(x).reshape(-1, 1)
+    elif len(x.shape) == 1:
+       x = x.reshape(-1, 1)
+
+    # last layer has no activation fcn
+    ilast = len(self.W) - 1
+
+    # probability of failure
+    p = max(self.P)
+
+    # the error (will be redefined if ifail >= 0)
+    error = p * np.square(x)
+
+    # loop over layers
+    for i, (w, b) in enumerate(zip(self.W, self.B)):
+      # computing forward pass...
+      x = w.T @ x + b.reshape(-1, 1)
+
+      # obtaining local Lipschitz coefficient (the derivative)
+      Klocal = np.ones(x.shape)
+
+      # applying activation and KLocal if there is an activation function (all but last layer)
+      if i < ilast:
+        Klocal = self.activation_grad(x)
+        x = self.activation_fcn(x)
+
+      # at the failing layer, copying output...
+      if i == ifail:
+        error = p * np.square(x)
+
+      # at later stages propagating the failure
+      elif i > ifail:
+        # multiplying by the weight matrix
+        error = np.square(w.T) @ error
+
+        # checking that can multiply element-wise with Klocal (Lipschitz coeffs)
+        assert Klocal.shape == error.shape, "Shapes Klocal=%s error=%s must agree" % (str(Klocal.shape), str(error.shape))
+
+        # multiplying by the activation
+        error = np.multiply(np.square(Klocal), error)
+
+    # return std
+    return np.sqrt(error)
+
   def get_exact_error_v3(self, x, ifail = 0):
     """ Exact error for a given input. ifail = 0 for first layer or -1 for failing input """
     # reshaping to a column vector if given a list or vector
