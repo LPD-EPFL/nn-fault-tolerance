@@ -48,6 +48,16 @@ for activation in ['sigmoid', 'relu']:
     assert np.mean(np.abs(res_tf - exp_mean)) / np.max(np.abs(exp_mean)) < tol, "Attempt %d: failed to test TF solution" % _
     assert np.mean(np.abs(res_orig - exp_mean)) / np.max(np.abs(exp_mean)) < tol, "Attempt %d: too far from the mean" % _
 
+    # TEST exact std: tf, O(p^2) and W^2
+    exp_std = np.std(errors, axis = 0)
+    res_better = exp.get_exact_std_error_v3_better(x0f)
+    res_tf = exp.get_exact_std_error_v3_tf(x0f)
+
+    # checking that they are close enough...
+    tol = 0.5
+    assert np.mean(np.abs(res_better - exp_std)) / np.max(np.abs(exp_std)) < tol, "Attempt %d: failed to test O(p^2) solution" % _
+    assert np.mean(np.abs(res_tf - exp_std)) / np.max(np.abs(exp_std)) < tol, "Attempt %d: failed to test TF solution" % _
+
 # testing generate_params
 inp = {'a': [0, 1, 2], 'b': ['x', 'y'], 'c': [None]}
 out = list(generate_params(**inp))
