@@ -242,6 +242,62 @@ class Experiment():
 
     return results
 
+  def get_exact_error_v3_better(self, x, output_tensor = False):
+    """ Exact error up to O(p^2) in case even if x_i are not small """
+    if type(x) == list:
+       x = np.array(x).reshape(1, -1)
+    elif len(x.shape) == 1:
+       x = x.reshape(1, -1)
+
+    layers = self.model_no_dropout.layers
+    first_layer = layers[0]
+    second_layer = layers[1]
+    last_layer = layers[-1]
+
+    # need to drop all components one by one in the second layer input
+    N2 = int(second_layer.input.shape[1])
+    outputs = []
+    for i in range(N2):
+      l1out = first_layer.output
+      mask = [0 if i == j else 1 for j in range(N2)]
+    
+      # dropped data
+      y = tf.multiply(l1out, mask)
+    
+      # implementing the rest of the network
+      for layer in layers[1:]:
+        y = layer.activation(tf.matmul(y, layer.weights[0]) + layer.weights[1])
+      outputs.append(y - last_layer.output)
+    res = max(self.P) * sum(outputs)
+    if not output_tensor:
+      res = sess.run(res, feed_dict = {first_layer.input.name: x})
+    return res
+
+  def get_exact_error_v3_tf(self, x):
+    """ Same as get_exact_error_v3 but uses TF implementation """
+    if type(x) == list:
+       x = np.array(x).reshape(1, -1)
+    elif len(x.shape) == 1:
+       x = x.reshape(1, -1)
+
+    # resulting gradient w.r.t. first layer output
+    grad = []
+
+    # list of layers
+    layers = self.model_no_dropout.layers
+
+    # for all output dimensions
+    for output_dim in range(self.N[-1]):
+      # get derivative of output
+      out = layers[-1].output[:, output_dim]
+
+      # w.r.t. first layer output
+      grad += [tf.reduce_sum(tf.multiply(tf.gradients([out], [layers[0].output])[0], layers[0].output), axis = 1)]
+
+    # comput the result
+    res = -max(self.P) * np.array(sess.run(grad, feed_dict = {layers[0].input.name: x})).T
+    return res
+
   def get_exact_error_v3(self, x, ifail = 0):
     """ Exact error for a given input. ifail = 0 for first layer or -1 for failing input """
     # reshaping to a column vector if given a list or vector
