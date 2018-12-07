@@ -510,6 +510,10 @@ class Experiment():
     mean_v3_approx = self.get_mean_error_v3(data)
     mean_v3_exact = self.get_exact_error_v3(np.array(data).T).T
     mean_v2 = self.get_mean_error_v2()
+    std_v3_better = self.get_exact_std_error_v3_better(data)
+    mean_v3_better = self.get_exact_error_v3_better(data)
+    std_v3_exact = self.get_exact_std_error_v3_tf(data)
+    std_v3_square = self.get_exact_std_error_v3(data)
 
     # Computing true values
     trues = [self.predict_no_dropout(value) for value in data]
@@ -557,7 +561,8 @@ class Experiment():
       print('Bound v1      %f Std %f' % (mean_bound, std_bound))
       print('Bound v2      %f' % np.mean(mean_v2))
       print('Bound v3 app  %f' % np.max(np.abs(mean_v3_approx)))
-      print('Bound v3 exct %f' % np.max(np.abs(mean_v3_exact)))
+      print('Bound v3 exct %f Std %f' % (np.max(np.abs(mean_v3_exact)), np.max(np.abs(std_v3_exact))))
+      print('Bound v3 bttr %f Std %f' % (np.max(np.abs(mean_v3_better)), np.max(np.abs(std_v3_better))))
       print('Experiment    %f Std %f' % (mean_exp, std_exp))
       print('MeanAct %s' % str(np.mean(activations, axis = 0)))
 
@@ -575,6 +580,10 @@ class Experiment():
      'error_v2_mean': mean_v2,
      'error_v3_mean_approx': mean_v3_approx,
      'error_v3_mean_exact': mean_v3_exact,
+     'error_v3_mean_better': mean_v3_better,
+     'error_v3_std_exact': std_v3_exact,
+     'error_v3_std_better': std_v3_better,
+     'error_v3_std_square': std_v3_square,
      'error_matnorm_prod_l1': norm_l1,
      'error_matnorm_prod_l2': norm_l2,
      'error_matnorm_sum_l1': norm_s_l1,
