@@ -513,7 +513,7 @@ class Experiment():
     std_v3_better = self.get_exact_std_error_v3_better(data)
     mean_v3_better = self.get_exact_error_v3_better(data)
     std_v3_exact = self.get_exact_std_error_v3_tf(data)
-    std_v3_square = self.get_exact_std_error_v3(data, complain = False)
+    std_v3_square = self.get_exact_std_error_v3(np.array(data).T, complain = False).T
 
     # Computing true values
     trues = [self.predict_no_dropout(value) for value in data]
