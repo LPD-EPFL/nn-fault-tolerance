@@ -4,6 +4,9 @@ from tqdm import tqdm
 from matplotlib import pyplot as plt
 from scipy.special import expit
 
+# for obtaining current TF session
+from keras.backend.tensorflow_backend import get_session
+
 class Experiment():
   """ One experiment on neuron crash, contains a fixed weights network """
   def __init__(self, N, P, KLips, activation = 'sigmoid', do_print = False, name = 'exp'):
@@ -271,7 +274,7 @@ class Experiment():
     res = max(self.P) * sum(outputs)
     res = tf.sqrt(res)
     if not output_tensor:
-      res = sess.run(res, feed_dict = {first_layer.input.name: x})
+      res = get_session().run(res, feed_dict = {first_layer.input.name: x})
     return res
 
   def get_exact_error_v3_better(self, x, output_tensor = False):
@@ -302,7 +305,7 @@ class Experiment():
       outputs.append(y - last_layer.output)
     res = max(self.P) * sum(outputs)
     if not output_tensor:
-      res = sess.run(res, feed_dict = {first_layer.input.name: x})
+      res = get_session().run(res, feed_dict = {first_layer.input.name: x})
     return res
 
   def get_exact_error_v3_tf(self, x):
@@ -327,7 +330,7 @@ class Experiment():
       grad += [tf.reduce_sum(tf.multiply(tf.gradients([out], [layers[0].output])[0], layers[0].output), axis = 1)]
 
     # comput the result
-    res = -max(self.P) * np.array(sess.run(grad, feed_dict = {layers[0].input.name: x})).T
+    res = -max(self.P) * np.array(get_session().run(grad, feed_dict = {layers[0].input.name: x})).T
     return res
 
   def get_exact_std_error_v3_tf(self, x):
@@ -352,7 +355,7 @@ class Experiment():
       grad += [tf.reduce_sum(tf.multiply(tf.square(tf.gradients([out], [layers[0].output])[0]), tf.square(layers[0].output)), axis = 1)]
 
     # comput the result
-    res = max(self.P) * np.array(sess.run(grad, feed_dict = {layers[0].input.name: x})).T
+    res = max(self.P) * np.array(get_session().run(grad, feed_dict = {layers[0].input.name: x})).T
     res = np.sqrt(res)
     return res
 
