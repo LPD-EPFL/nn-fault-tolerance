@@ -359,10 +359,10 @@ class Experiment():
     res = np.sqrt(res)
     return res
 
-  def get_exact_std_error_v3(self, x, ifail = 0):
+  def get_exact_std_error_v3(self, x, ifail = 0, complain = True):
     """ Exact error std for a given input. ifail = 0 for first layer or -1 for failing input """
 
-    if not hasattr(self, 'get_exact_std_error_v3_complained'):
+    if not hasattr(self, 'get_exact_std_error_v3_complained') and complain:
         print("This function does not result in true variance: self.get_exact_std_error_v3")
     self.get_exact_std_error_v3_complained = True
 
@@ -513,7 +513,7 @@ class Experiment():
     std_v3_better = self.get_exact_std_error_v3_better(data)
     mean_v3_better = self.get_exact_error_v3_better(data)
     std_v3_exact = self.get_exact_std_error_v3_tf(data)
-    std_v3_square = self.get_exact_std_error_v3(data)
+    std_v3_square = self.get_exact_std_error_v3(data, complain = False)
 
     # Computing true values
     trues = [self.predict_no_dropout(value) for value in data]
@@ -583,7 +583,7 @@ class Experiment():
      'error_v3_mean_better': mean_v3_better,
      'error_v3_std_exact': std_v3_exact,
      'error_v3_std_better': std_v3_better,
-     'error_v3_std_square': std_v3_square,
+     'error_v3_std_square': std_v3_square.T,
      'error_matnorm_prod_l1': norm_l1,
      'error_matnorm_prod_l2': norm_l2,
      'error_matnorm_sum_l1': norm_s_l1,
