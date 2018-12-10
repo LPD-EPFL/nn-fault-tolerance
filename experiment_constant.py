@@ -5,7 +5,7 @@ from keras import backend as K
 import helpers
 
 class ConstantExperiment(Experiment):
-  def __init__(self, N, P, W, B, KLips = 1, activation = 'sigmoid', do_print = False, name = 'exp'):
+  def __init__(self, N, P, KLips, W, B, activation = 'sigmoid', do_print = False, name = 'exp'):
     """ Fill in the weights and initialize models """
     Experiment.__init__(self, N, P, KLips, activation, do_print, name = name)
     
