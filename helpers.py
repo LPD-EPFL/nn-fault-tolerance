@@ -24,12 +24,12 @@ from keras.models import Sequential
 from keras.layers import Dense, Dropout, Flatten
 from keras.layers.core import Lambda
 from keras.initializers import Constant
-from keras.datasets import mnist
 from keras.regularizers import l1, l2
 from functools import partial
+from numbers import Number
 
-def PermanentDropout(p_fail):
-  """ Make dropout work when using predict(), not only on train """
+def IndependentCrashes(p_fail):
+  """ Make dropout work when using predict(), not only on train, without scaling """
   return Lambda(lambda x: K.dropout(x, level=p_fail) * (1 - p_fail))
 
 # calculate first norm
@@ -55,24 +55,34 @@ def get_custom_activation(KLips, func):
         return K.relu(KLips * x)
   return custom_activation
 
-# preparing dataset
-def get_mnist(out_scaler = 1.0, in_scaler = 255.):
-    (x_train, y_train), (x_test, y_test) = mnist.load_data()
-    x_train = x_train.reshape(-1, 28 ** 2) / 255. * in_scaler
-    x_test = x_test.reshape(-1, 28 ** 2) / 255. * in_scaler
-    digits = {x: [out_scaler if y == x else 0. for y in range(10)] for x in range(10)}
-    y_train = np.array([digits[y] for y in y_train])
-    y_test = np.array([digits[y] for y in y_test])
-    return x_train, y_train, x_test, y_test
+def assert_equal(x, y, name_x = "x", name_y = "y"):
+  """ Assert that x == y and if not, pretty-print the error """
+  assert x == y, "%s = %s must be equal to %s = %s" % (str(name_x), str(x), str(name_y), str(y))
 
-def create_random_weight_model(Ns, p_fails, p_bound, KLips, func = 'sigmoid', reg_type = 0, reg_coeff = 0.01, train_dropout_l1 = 0):
-  """ Create some simple network with given dropout prob, weights and Lipschitz coefficient for sigmoid """
+def create_fixed_weight_model(Ns, weights, biases, p_fail_inference, p_fail_train, KLips = 1, func = 'sigmoid', reg_type = None, reg_coeff = 0):
+  """ Create a simple network with given dropout prob, weights and Lipschitz coefficient for sigmoid
+      Ns: array of shapes: [input, hidden1, hidden2, ..., output]
+      weights: array with matrices. The shape must be [hidden1 x input, hidden2 x hidden1, ..., output x hiddenLast]
+      biases: array with vectors. The shape must be [hidden1, hidden2, ..., output]
+      p_fail_inference: array with p_fail for [input, hidden1, ..., output]. Must be the same size as Ns
+      p_fail_train: same for training phase
+      KLips: the Lipschitz coefficient
+      func: The acivation function. Currently 'relu' and 'sigmoid' are supported. Note that the last layer is linear to agree with the When Neurons Fail article
+      reg_type: The regularization type 'l1' or 'l2'
+      reg_coeff: The regularization parameter
+  """
   
+  # input sanity check
+  assert_equal(len(Ns), len(p_fail_inference), "Shape array length", "p_fail inference array length")
+  assert_equal(len(p_fail_train), len(p_fail_inference), "p_fail train array length", "p_fail inference array length")
+  assert_equal(len(Ns), len(weights) + 1, "Shape array length", "Weights array length + 1")
+  assert_equal(len(biases), len(weights), "Biases array length", "Weights array length")
+  assert func in ['relu', 'sigmoid'], "Activation %s must be either relu or sigmoid" % func
+  assert reg_type in [None, 'l1', 'l2'], "Regularization %s must be either l1, l2 or None" % reg_type
+  assert 
+
   # creating model
   model = Sequential()
-
-  # clearing the variable
-  errors = {0: 0} 
 
   # adding layers
   for i in range(len(Ns) - 1):
@@ -88,8 +98,10 @@ def create_random_weight_model(Ns, p_fails, p_bound, KLips, func = 'sigmoid', re
         regularizer = l2(reg_coeff)
     elif reg_type == 'l1':
         regularizer = l1(reg_coeff)
-    elif reg_type == 0 or reg_type == 'dropout':
+    elif reg_type == None:
         regularizer = lambda w : 0
+    else:
+        raise(NotImplementedError("Regularization type"))
 
     # adding dense layer with sigmoid for hidden and linear for last layer
     model.add(Dense(Ns[i + 1], input_shape = (Ns[i], ),
@@ -111,8 +123,7 @@ def create_random_weight_model(Ns, p_fails, p_bound, KLips, func = 'sigmoid', re
               metrics=['accuracy', 'mean_squared_error'])
 
   model.summary()
-  last = len(Ns) - 2
-  return model, errors[last] if last in errors else None, errors
+  return model
 
 def create_model(p_fails, layer_weights, layer_biases, KLips, func = 'sigmoid'):
   """ Create some simple network with given dropout prob, weights and Lipschitz coefficient for sigmoid """

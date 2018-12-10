@@ -29,9 +29,11 @@ class ConstantExperiment(Experiment):
         self.C = self.mean_per_neuron(inputs)
 
   def reset_C(self):
+    """ Set C to Ones (sigmoid) or to Zeros (relu) """
     if self.activation == 'relu':
         self.C = np.zeros(np.array(self.C).shape)
     else: self.C = np.ones(np.array(self.C).shape)
     
   def get_inputs(self, how_many):
+    """ Get random normal input-shaped vectors """
     return np.random.randn(how_many, self.N[0])

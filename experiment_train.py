@@ -9,7 +9,17 @@ from functools import partial
 import sys
 
 class TrainExperiment(ConstantExperiment):
-  def __init__(self, x_train, y_train, x_test, y_test, N, P, KLips = 1, epochs = 20, activation = 'sigmoid', update_C_inputs = 1000, reg_type = 0, reg_coeff = 0.01, do_print = False, name = 'exp', train_dropout_l1 = 0, classify = False):
+  def __init__(self, x_train, y_train, x_test, y_test, N, P, task = 'classification', KLips = 1, epochs = 20, activation = 'sigmoid', reg_type = 0, reg_coeff = 0.01, do_print = False, name = 'exp'):
+    """ Get a trained with MSE loss network with configuration (N, P, activation) and reg_type(reg_coeff) with name. The last layer is linear
+        N: array with shapes [hidden1, hidden2, ..., hiddenLast]. Input and output shapes are determined automatically
+        Pinference: array with [p_input, p_h1, ..., p_hlast, p_output]: inference failure probabilities
+        Ptrain: same for the train
+    """
+
+    # input check
+    assert task in ['classification', 'regression'], "Only support regression and classification"
+
+    # obtaining input/output shape
     input_shape = x_train[0].size
     output_shape = y_train[0].size
     N = [input_shape] + N + [output_shape]
@@ -36,8 +46,6 @@ class TrainExperiment(ConstantExperiment):
     self.create_supplementary_functions()
 
     history = model.fit(self.x_train, self.y_train, verbose = do_print, batch_size = 10000, epochs = epochs, validation_data = (self.x_test, self.y_test))
-
-    self.reset_C()
 
     if do_print:
       plt.figure()
