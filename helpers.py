@@ -59,13 +59,12 @@ def assert_equal(x, y, name_x = "x", name_y = "y"):
   """ Assert that x == y and if not, pretty-print the error """
   assert x == y, "%s = %s must be equal to %s = %s" % (str(name_x), str(x), str(name_y), str(y))
 
-def create_fixed_weight_model(Ns, weights, biases, p_fail_inference, p_fail_train, KLips = 1, func = 'sigmoid', reg_type = None, reg_coeff = 0):
+def create_fc_crashing_model(Ns, weights, biases, p_fail, KLips = 1, func = 'sigmoid', reg_type = None, reg_coeff = 0):
   """ Create a simple network with given dropout prob, weights and Lipschitz coefficient for sigmoid
       Ns: array of shapes: [input, hidden1, hidden2, ..., output]
       weights: array with matrices. The shape must be [hidden1 x input, hidden2 x hidden1, ..., output x hiddenLast]
       biases: array with vectors. The shape must be [hidden1, hidden2, ..., output]
-      p_fail_inference: array with p_fail for [input, hidden1, ..., output]. Must be the same size as Ns
-      p_fail_train: same for training phase
+      p_fail: array with p_fail for [input, hidden1, ..., output]. Must be the same size as Ns. Both for inference and training
       KLips: the Lipschitz coefficient
       func: The acivation function. Currently 'relu' and 'sigmoid' are supported. Note that the last layer is linear to agree with the When Neurons Fail article
       reg_type: The regularization type 'l1' or 'l2'
@@ -73,88 +72,68 @@ def create_fixed_weight_model(Ns, weights, biases, p_fail_inference, p_fail_trai
   """
   
   # input sanity check
-  assert_equal(len(Ns), len(p_fail_inference), "Shape array length", "p_fail inference array length")
-  assert_equal(len(p_fail_train), len(p_fail_inference), "p_fail train array length", "p_fail inference array length")
+  assert_equal(len(Ns), len(p_fail), "Shape array length", "p_fail array length")
   assert_equal(len(Ns), len(weights) + 1, "Shape array length", "Weights array length + 1")
   assert_equal(len(biases), len(weights), "Biases array length", "Weights array length")
-  assert func in ['relu', 'sigmoid'], "Activation %s must be either relu or sigmoid" % func
-  assert reg_type in [None, 'l1', 'l2'], "Regularization %s must be either l1, l2 or None" % reg_type
-  assert 
+  assert func in ['relu', 'sigmoid'], "Activation %s must be either relu or sigmoid" % str(func)
+  assert reg_type in [None, 'l1', 'l2'], "Regularization %s must be either l1, l2 or None" % str(reg_type)
+  assert isinstance(KLips, Number), "KLips %s must be a number" % str(KLips)
+  assert isinstance(reg_coeff, Number), "reg_coeff %s must be a number" % str(reg_coeff)
 
   # creating model
   model = Sequential()
 
-  # adding layers
-  for i in range(len(Ns) - 1):
-    # is last layer (with output)?
-    is_last = i + 2 == len(Ns)
-    p_fail = p_fails[1 + i]
-    N_pre = Ns[i]
-    N_post = Ns[i + 1]
+  # loop over shapes
+  for i in range(len(Ns)):
+    # is the first layer (with input)?
+    is_input = (i == 0)
 
-    print(N_pre, N_post)
+    # is the last layer (with output)?
+    is_output = (i == len(Ns) - 1)
 
-    if reg_type == 'l2':
-        regularizer = l2(reg_coeff)
-    elif reg_type == 'l1':
-        regularizer = l1(reg_coeff)
-    elif reg_type == None:
-        regularizer = lambda w : 0
-    else:
-        raise(NotImplementedError("Regularization type"))
+    # probability of failure for this shape
+    p = p_fail[i]
 
-    # adding dense layer with sigmoid for hidden and linear for last layer
-    model.add(Dense(Ns[i + 1], input_shape = (Ns[i], ),
-                    kernel_initializer = Constant(np.random.randn(N_pre, N_post) * np.sqrt(2. / N_pre) / KLips),
-                    activation = 'linear' if is_last else get_custom_activation(KLips, func),
-                    bias_initializer = 'random_normal',
-                    kernel_regularizer = regularizer
-                   ))
+    # current shape
+    N_current = Ns[i]
 
-    # adding dropout to all layers but last
-    if not is_last and p_fail > 0:
-      model.add(PermanentDropout(p_fail))
+    # previous shape or None
+    N_prev = Ns[i - 1] if i > 0 else None
 
-    if i == 0 and train_dropout_l1 > 0:
-      model.add(PermanentDropout(train_dropout_l1))
+    # adding a dense layer if have previous shape (otherwise it's input)
+    if not is_input:
+      # deciding the type of regularizer
+      if reg_type == 'l2':
+          regularizer = l2(reg_coeff)
+      elif reg_type == 'l1':
+          regularizer = l1(reg_coeff)
+      elif reg_type == None:
+          regularizer = lambda w : 0
+      else:
+          raise(NotImplementedError("Regularization type"))
+
+      # deciding the activation function
+      activation = 'linear' if is_output else get_custom_activation(KLips, func)
+
+      # extracting weights and biases
+      w = W[i - 1]
+      b = B[i - 1]
+      assert_equal(w.shape, (N_current, N_prev), "Weight matrix %d/%d shape" % (i, len(Ns) - 1), "Ns array entries")
+      assert_equal(b.shape, (N_current, ), "Biases vector %d/%d shape" % (i, len(Ns) - 1), "Ns array entry")
+
+      # adding a Dense layer
+      model.add(Dense(N_current, input_shape = (N_prev, ), kernel_initializer = Constant(w),
+          activation = activation, bias_initializer = Constant(b), kernel_regularizer = regularizer))
+
+    # adding dropout if needed
+    if p > 0:
+      model.add(IndependentCrashes(p))
 
   model.compile(loss=keras.losses.mean_squared_error,
               optimizer=keras.optimizers.Adadelta(),
               metrics=['accuracy', 'mean_squared_error'])
 
   model.summary()
-  return model
-
-def create_model(p_fails, layer_weights, layer_biases, KLips, func = 'sigmoid'):
-  """ Create some simple network with given dropout prob, weights and Lipschitz coefficient for sigmoid """
-  
-  # checking if length matches
-  assert(len(p_fails) == len(layer_weights))
-  assert(len(layer_biases) == len(layer_weights))
-  
-  # creating model
-  model = Sequential()
-
-  # adding layers
-  for i, (p_fail, w, b) in enumerate(zip(p_fails[1:] + [0], layer_weights, layer_biases)):
-    # is last layer (with output)?
-    is_last = i + 1 == len(layer_weights)
-
-    # adding dense layer with sigmoid for hidden and linear for last layer
-    model.add(Dense(w.shape[1], input_shape = (w.shape[0], ),
-                    kernel_initializer = Constant(w),
-                    activation = 'linear' if is_last else get_custom_activation(KLips, func),
-                    bias_initializer = Constant(b)))
-    
-    # adding dropout to all layers but last
-    if not is_last and p_fail > 0:
-      model.add(PermanentDropout(p_fail))
-  
-  # compiling model with some loss and some optimizer (they are unused)
-  model.compile(loss=keras.losses.mean_absolute_error,
-              optimizer=keras.optimizers.Adadelta(),
-              metrics=['accuracy'])
-  #model.summary()
   return model
 
 def generate_params(**kwargs):
