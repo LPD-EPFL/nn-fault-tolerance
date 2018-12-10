@@ -1,4 +1,5 @@
 from helpers import *
+from model import *
 import numpy as np
 from tqdm import tqdm
 from matplotlib import pyplot as plt
