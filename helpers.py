@@ -15,15 +15,6 @@ def norm1_minus_dot_abs(x, y):
   """ Product of first norms - dot product between absolute values """
   return norm1(x) * norm1(y) - dot_abs(x, y)
 
-def get_custom_activation(KLips, func):
-  """ Get custom sigmoid activation with given Lipschitz constant """
-  def custom_activation(x):
-    if func == 'sigmoid':
-        return K.sigmoid(4 * KLips * x)
-    elif func == 'relu':
-        return K.relu(KLips * x)
-  return custom_activation
-
 def generate_params(**kwargs):
     """ Arguments -> array of dicts """
     
@@ -69,3 +60,7 @@ def rank_loss(a, b):
 def compute_rank_losses(data, key):
     """ Compute rank losses for a dict with data, referenced to key """
     return {keyother: rank_loss(data[key], data[keyother]) for keyother in data.keys() if keyother != key}
+
+def assert_equal(x, y, name_x = "x", name_y = "y"):
+  """ Assert that x == y and if not, pretty-print the error """
+  assert x == y, "%s = %s must be equal to %s = %s" % (str(name_x), str(x), str(name_y), str(y))

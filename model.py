@@ -30,25 +30,24 @@ from keras.layers import Dense
 from keras.layers.core import Lambda
 from keras.initializers import Constant
 from keras.regularizers import l1, l2
-from functools import partial
 from numbers import Number
+from helpers import *
 
 def IndependentCrashes(p_fail):
   """ Make dropout work when using predict(), not only on train, without scaling """
+  assert isinstance(pfail, Number), "pfail must be a number"
   return Lambda(lambda x: K.dropout(x, level=p_fail) * (1 - p_fail))
 
 def get_custom_activation(KLips, func):
   """ Get custom sigmoid activation with given Lipschitz constant """
+  assert isinstance(KLips, Number), "KLips must be a number"
   def custom_activation(x):
     if func == 'sigmoid':
         return K.sigmoid(4 * KLips * x)
     elif func == 'relu':
         return K.relu(KLips * x)
+    else raise NotImplementedError("Activation function %s is not supported" % str(func))
   return custom_activation
-
-def assert_equal(x, y, name_x = "x", name_y = "y"):
-  """ Assert that x == y and if not, pretty-print the error """
-  assert x == y, "%s = %s must be equal to %s = %s" % (str(name_x), str(x), str(name_y), str(y))
 
 def create_fc_crashing_model(Ns, weights, biases, p_fail, KLips = 1, func = 'sigmoid', reg_type = None, reg_coeff = 0, do_print = True):
   """ Create a simple network with given dropout prob, weights and Lipschitz coefficient for sigmoid
@@ -63,6 +62,7 @@ def create_fc_crashing_model(Ns, weights, biases, p_fail, KLips = 1, func = 'sig
   """
   
   # input sanity check
+  assert isinstance(Ns, list), "Ns must be a list"
   assert_equal(len(Ns), len(p_fail), "Shape array length", "p_fail array length")
   assert_equal(len(Ns), len(weights) + 1, "Shape array length", "Weights array length + 1")
   assert_equal(len(biases), len(weights), "Biases array length", "Weights array length")
