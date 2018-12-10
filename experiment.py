@@ -9,7 +9,7 @@ from keras.backend.tensorflow_backend import get_session
 
 class Experiment():
   """ One experiment on neuron crash, contains a fixed weights network """
-  def __init__(self, N, P, KLips, activation = 'sigmoid', do_print = False, name = 'exp'):
+  def __init__(self, N, P, KLips = 1, activation = 'sigmoid', do_print = False, name = 'exp'):
     """ Initialize using given number of neurons per layer N (array), probability of failure P, and the Lipschitz coefficient """
     
     if do_print:

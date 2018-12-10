@@ -9,9 +9,10 @@ from functools import partial
 import sys
 
 class TrainExperiment(ConstantExperiment):
-  def __init__(self, N, P, KLips, x_train, y_train, x_test, y_test, epochs = 20, activation = 'sigmoid', update_C_inputs = 1000, reg_type = 0, reg_coeff = 0.01, do_print = False, name = 'exp', train_dropout_l1 = 0):
-    input_shape = len(x_train[0])
-    output_shape = len(y_train[0])
+  def __init__(self, x_train, y_train, x_test, y_test, N, P, KLips = 1, epochs = 20, activation = 'sigmoid', update_C_inputs = 1000, reg_type = 0, reg_coeff = 0.01, do_print = False, name = 'exp', train_dropout_l1 = 0):
+    print(x_train)
+    input_shape = x_train[0].size
+    output_shape = y_train[0].size
     N = [input_shape] + N + [output_shape]
 
 #    if type(P) == list:
