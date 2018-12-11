@@ -5,73 +5,88 @@ from experiment_constant import *
 from matplotlib import pyplot as plt
 import pickle
 from tqdm import tqdm
-from functools import partial
 import sys
 
 class TrainExperiment(ConstantExperiment):
-  def __init__(self, x_train, y_train, x_test, y_test, N, P, task = 'classification', KLips = 1, epochs = 20, activation = 'sigmoid', reg_type = 0, reg_coeff = 0.01, do_print = False, name = 'exp'):
+  def __init__(self, x_train, y_train, x_test, y_test, N, Pinference = None, Ptrain = None, task = 'classification', KLips = 1, epochs = 20, activation = 'sigmoid', reg_type = 0, reg_coeff = 0.01, do_print = False, name = 'exp'):
     """ Get a trained with MSE loss network with configuration (N, P, activation) and reg_type(reg_coeff) with name. The last layer is linear
         N: array with shapes [hidden1, hidden2, ..., hiddenLast]. Input and output shapes are determined automatically
         Pinference: array with [p_input, p_h1, ..., p_hlast, p_output]: inference failure probabilities
         Ptrain: same for the train
     """
 
-    # input check
-    assert task in ['classification', 'regression'], "Only support regression and classification"
+    # fixing Pinference
+    if Pinference == None:
+      Pinference = [0] * (len(N) + 2)
+
+    # fixing Ptrain
+    if Ptrain == None:
+      Ptrain = [0] * (len(N) + 2)
 
     # obtaining input/output shape
     input_shape = x_train[0].size
     output_shape = y_train[0].size
+
+    # full array of shapes
     N = [input_shape] + N + [output_shape]
 
-    self.classify = classify
+    # input check
+    assert task in ['classification', 'regression'], "Only support regression and classification"
+    assert len(Pinference) == len(Ptrain), "Pinference and Ptrain must have the same length"
+    assert len(N) == len(Ptrain), "Ptrain must have two more elements compared to N"
+    assert input_shape > 0, "Input must exist"
+    assert output_shape > 0, "Output must exist"
 
-#    if type(P) == list:
-#        P = [0] + P + [0]
-      
-    """ Fill in the weights and initialize models """
-   
+    # filling in the task
+    self.task = task
+
+    # remembering the dataset
     self.x_train, self.y_train, self.x_test, self.y_test = x_train, y_train, x_test, y_test
 
-    train_dropout = [0] * len(N)
-
-    self.activation = activation
-
+    # initializing the experiment (w/o model) to save the data
     Experiment.__init__(self, N, P, KLips, activation, do_print = False, name = name)
-    model, self.reg, self.errors = create_random_weight_model(N, train_dropout, self.P, KLips, activation, reg_type = reg_type, reg_coeff = reg_coeff, train_dropout_l1 = train_dropout_l1)
-    self.model_no_dropout = model
-    self.layers = model.layers[:-1]
-    if reg_type == 'dropout':
-        self.layers = self.layers[:1] + self.layers[2:]
-    self.create_supplementary_functions()
 
+    # creating weight initialization
+    W, B = [], []
+    for i in range(1, len(N)):
+      W += [np.random.randn(self.N[i], self.N[i - 1]) * np.sqrt(2. / self.N[i - 1]) / self.KLips]
+      B += [np.random.randn(self.N[i])]
+
+    # creating a model
+    model = create_fc_crashing_model(N, W, B, Ptrain, KLips = self.KLips, func = self.activation, reg_type = reg_type, reg_coeff = reg_coeff, do_print = do_print)
+
+    # fitting the model on the train data
     history = model.fit(self.x_train, self.y_train, verbose = do_print, batch_size = 10000, epochs = epochs, validation_data = (self.x_test, self.y_test))
 
+    # plotting the loss
     if do_print:
       plt.figure()
-      if classify:
-        plt.plot(history.history['val_acc'], label = 'Validation accuracy')
-        plt.plot(history.history['acc'], label = 'Accuracy')
-      else:
-        plt.plot(history.history['val_loss'], label = 'Validation loss')
-        plt.plot(history.history['loss'], label = 'Loss')
+
+      # determining what to plot (target)
+      if self.task == 'classification':
+        target = 'acc'
+      elif self.task == 'regression':
+        target = 'loss'
+      else: raise NotImplementedError("Plotting for this task is not supported")
+
+      # plotting
+      plt.plot(history.history['val_' + target], label = 'val_' + target)
+      plt.plot(history.history[target], label = target)
       plt.legend()
       plt.savefig('training_' + name + '.png')
       plt.show()
     
-    # weights and biases
+    # obtaining trained weights and biases
     W = model.get_weights()[0::2]
     B = model.get_weights()[1::2]
 
-    self.original_model = model
-      
     # creating "crashing" and "normal" models
     ConstantExperiment.__init__(self, N, P, KLips, W, B, activation, do_print, name = name)
     self.layers = self.model_no_dropout.layers[:-1]
 
   def get_accuracy(self, inputs = 1000, repetitions = 1000, tqdm_ = lambda x : x, no_dropout = False):
-    if not self.classify:
-      print("Warning: the task is a regression task")
+    if self.task != 'classify':
+      print("Warning: the task is not a classification task")
     if no_dropout: repetitions = 1
     x = np.vstack((self.x_train, self.x_test))
     y = np.vstack((self.y_train, self.y_test))
@@ -82,11 +97,13 @@ class TrainExperiment(ConstantExperiment):
     predictions = [predict_method(inp) for inp in tqdm_(data)]
     correct = [pred == ans for pred, ans in zip(predictions, answers)]
     return np.sum(correct) / (inputs * repetitions)
+
   def get_mae_nocrash(self):
-     """ Get mean absolute error for train and test datasets """
+    """ Get mean absolute error for train and test datasets """
     err_train = np.mean(np.abs(self.model_no_dropout.predict(self.x_train) - self.y_train))
     err_test  = np.mean(np.abs(self.model_no_dropout.predict(self.x_test)  - self.y_test))
     return {'train': err_train, 'test': err_test}
+
   def get_inputs(self, how_many):
     x = np.vstack((self.x_train, self.x_test))
     indices = np.random.choice(x.shape[0], how_many, replace = False)

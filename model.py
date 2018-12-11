@@ -46,7 +46,7 @@ def get_custom_activation(KLips, func):
         return K.sigmoid(4 * KLips * x)
     elif func == 'relu':
         return K.relu(KLips * x)
-    else raise NotImplementedError("Activation function %s is not supported" % str(func))
+    else: raise NotImplementedError("Activation function %s is not supported" % str(func))
   return custom_activation
 
 def create_fc_crashing_model(Ns, weights, biases, p_fail, KLips = 1, func = 'sigmoid', reg_type = None, reg_coeff = 0, do_print = True):

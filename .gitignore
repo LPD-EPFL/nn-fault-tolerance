@@ -1,5 +1,4 @@
-accuracy_training_exp.png
-error_hist_exp.png
+*.png
 run*.sh
 *.swp
 __pycache__

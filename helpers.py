@@ -1,5 +1,6 @@
 # standard imports
 import numpy as np
+from functools import partial
 
 # calculate first norm
 norm1 = partial(np.linalg.norm, ord = 1)
