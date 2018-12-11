@@ -33,10 +33,10 @@ from keras.regularizers import l1, l2
 from numbers import Number
 from helpers import *
 
-def IndependentCrashes(p_fail):
+def IndependentCrashes(p_fail, input_shape = None):
   """ Make dropout work when using predict(), not only on train, without scaling """
-  assert isinstance(pfail, Number), "pfail must be a number"
-  return Lambda(lambda x: K.dropout(x, level=p_fail) * (1 - p_fail))
+  assert isinstance(p_fail, Number), "pfail must be a number"
+  return Lambda(lambda x: K.dropout(x, level=p_fail) * (1 - p_fail), input_shape = input_shape)
 
 def get_custom_activation(KLips, func):
   """ Get custom sigmoid activation with given Lipschitz constant """
@@ -107,8 +107,8 @@ def create_fc_crashing_model(Ns, weights, biases, p_fail, KLips = 1, func = 'sig
       activation = 'linear' if is_output else get_custom_activation(KLips, func)
 
       # extracting weights and biases
-      w = W[i - 1]
-      b = B[i - 1]
+      w = weights[i - 1]
+      b = biases[i - 1]
       assert_equal(w.shape, (N_current, N_prev), "Weight matrix %d/%d shape" % (i, len(Ns) - 1), "Ns array entries")
       assert_equal(b.shape, (N_current, ), "Biases vector %d/%d shape" % (i, len(Ns) - 1), "Ns array entry")
 
@@ -118,7 +118,7 @@ def create_fc_crashing_model(Ns, weights, biases, p_fail, KLips = 1, func = 'sig
 
     # adding dropout if needed
     if p > 0:
-      model.add(IndependentCrashes(p))
+      model.add(IndependentCrashes(p, input_shape = (N_current, )))
 
   # compiling the model
   model.compile(loss=keras.losses.mean_squared_error,

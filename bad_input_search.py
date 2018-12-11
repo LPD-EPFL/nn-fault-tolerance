@@ -2,7 +2,7 @@ from helpers import *
 
 # for adding functions to Experiment class
 __methods__ = []
-register_method = Lib.register_method(__methods__)
+register_method = register_method(__methods__)
 
 @register_method
 def bad_input_search(self, random_seed = 42, repetitions = 1000, to_add = 20, to_keep = 5, maxiter = 20, scaler = 1, use_std = False):

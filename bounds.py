@@ -10,7 +10,7 @@ from keras.backend.tensorflow_backend import get_session
 
 # for adding functions to Experiment class
 __methods__ = []
-register_method = Lib.register_method(__methods__)
+register_method = register_method(__methods__)
 
 @register_method
 def run(self, repetitions = 10000, inputs = 50, do_plot = True, do_print = True, do_tqdm = True, randn = None, inputs_update = None):

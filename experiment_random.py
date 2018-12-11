@@ -1,9 +1,10 @@
 from helpers import *
 import numpy as np
-from experiment_constant import ConstantExperiment
+from experiment import *
 
-class RandomExperiment(ConstantExperiment):
-  def __init__(self, N, P, KLips = 1, activation = 'sigmoid', do_print = False, mean_weight = 0, std_weight = 1):
+class RandomExperiment(Experiment):
+  """ Initialize the weights randomly """
+  def __init__(self, N, mean_weight = 0, std_weight = 1, **kwargs):
     
     # array with weight matrices
     W = []
@@ -18,10 +19,8 @@ class RandomExperiment(ConstantExperiment):
       b = np.random.randn(N[i]) / N[i] * std_weight + mean_weight
       
       # adding them to the array
-      W.append(w)
+      W.append(w.T)
       B.append(b)
    
-    ConstantExperiment.__init__(self, N, P, KLips, W, B, activation, do_print)
-    
-  def get_inputs(self, how_many):
-    return np.random.randn(how_many, self.N[0])
+    # initializing the base class
+    Experiment.__init__(self, N, W, B, **kwargs)

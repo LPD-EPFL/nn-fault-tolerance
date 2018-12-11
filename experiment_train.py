@@ -1,13 +1,13 @@
 from keras import backend as K
 from helpers import *
 import numpy as np
-from experiment_constant import *
+from experiment import *
 from matplotlib import pyplot as plt
 import pickle
 from tqdm import tqdm
 import sys
 
-class TrainExperiment(ConstantExperiment):
+class TrainExperiment(Experiment):
   def __init__(self, x_train, y_train, x_test, y_test, N, Pinference = None, Ptrain = None, task = 'classification', KLips = 1, epochs = 20, activation = 'sigmoid', reg_type = 0, reg_coeff = 0.01, do_print = False, name = 'exp'):
     """ Get a trained with MSE loss network with configuration (N, P, activation) and reg_type(reg_coeff) with name. The last layer is linear
         N: array with shapes [hidden1, hidden2, ..., hiddenLast]. Input and output shapes are determined automatically
@@ -43,29 +43,26 @@ class TrainExperiment(ConstantExperiment):
     # remembering the dataset
     self.x_train, self.y_train, self.x_test, self.y_test = x_train, y_train, x_test, y_test
 
-    # initializing the experiment (w/o model) to save the data
-    Experiment.__init__(self, N, P, KLips, activation, do_print = False, name = name)
-
     # creating weight initialization
     W, B = [], []
     for i in range(1, len(N)):
-      W += [np.random.randn(self.N[i], self.N[i - 1]) * np.sqrt(2. / self.N[i - 1]) / self.KLips]
-      B += [np.random.randn(self.N[i])]
+      W += [np.random.randn(N[i], N[i - 1]) * np.sqrt(2. / N[i - 1]) / KLips]
+      B += [np.random.randn(N[i])]
 
     # creating a model
-    model = create_fc_crashing_model(N, W, B, Ptrain, KLips = self.KLips, func = self.activation, reg_type = reg_type, reg_coeff = reg_coeff, do_print = do_print)
+    model = create_fc_crashing_model(N, W, B, Ptrain, KLips = KLips, func = activation, reg_type = reg_type, reg_coeff = reg_coeff, do_print = do_print)
 
     # fitting the model on the train data
-    history = model.fit(self.x_train, self.y_train, verbose = do_print, batch_size = 10000, epochs = epochs, validation_data = (self.x_test, self.y_test))
+    history = model.fit(x_train, y_train, verbose = do_print, batch_size = 10000, epochs = epochs, validation_data = (x_test, y_test))
 
     # plotting the loss
     if do_print:
       plt.figure()
 
       # determining what to plot (target)
-      if self.task == 'classification':
+      if task == 'classification':
         target = 'acc'
-      elif self.task == 'regression':
+      elif task == 'regression':
         target = 'loss'
       else: raise NotImplementedError("Plotting for this task is not supported")
 

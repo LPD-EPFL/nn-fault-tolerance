@@ -73,6 +73,9 @@ def add_methods_from(*modules):
     def decorator(Class):
         for module in modules:
             for method in getattr(module, "__methods__"):
+                if hasattr(Class, method.__name__):
+                  print(method.__name__)
+                  raise Warning("Shadowing a previous method %s by loading module %s" % (str(method.__name__), str(module)))
                 setattr(Class, method.__name__, method)
         return Class
     return decorator

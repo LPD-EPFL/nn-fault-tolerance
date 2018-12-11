@@ -8,65 +8,92 @@ from scipy.special import expit
 # for obtaining current TF session
 from keras.backend.tensorflow_backend import get_session
 
+# importing other parts of the class
+import bad_input_search, bounds
+
+# adding other parts of the class
+@add_methods_from(bad_input_search, bounds)
 class Experiment():
   """ One experiment on neuron crash, contains a fixed weights network """
-  def __init__(self, N, P, KLips = 1, activation = 'sigmoid', do_print = False, name = 'exp'):
-    """ Initialize using given number of neurons per layer N (array), probability of failure P, and the Lipschitz coefficient """
-    
+  def __init__(self, N, W, B, p_inference, KLips = 1, activation = 'sigmoid', do_print = False, name = 'exp'):
+    """ Initialize a crashing neurons experiment with
+        N array of shapes [input, hidden_1, ..., hidden_last, output]
+        W: array with matrices. The shape must be [hidden1 x input, hidden2 x hidden1, ..., output x hiddenLast]
+        B: array with vectors. The shape must be [hidden1, hidden2, ..., output] 
+        p_inference neuron failure probabilities, same length as N
+        p_train neuron failure probabilities, same length as N
+        KLips Lipschitz coefficient of the activation function
+        activation Activation function type
+        do_print Print a summary?
+        name Name of the experiment
+    """
+
+    # printing some information    
     if do_print:
       print('Creating network for %d-dimensional input and %d-dimensional output, with %d hidden layers' % (N[0], N[-1], len(N) - 2))
-    
+
+    # fixing Pinference
+    if p_inference == None:
+      p_inference = [0] * (len(N))
+
+    # input check
+    assert len(N) == len(p_inference), "p_inference must same dimension as N"
+
+    # saving weights/biases
+    self.W = W
+    self.B = B
+
+    # creating "crashing" model
+    self.model_crashing = create_fc_crashing_model(N, W, B, p_inference, KLips = KLips, func = activation, reg_type = None, reg_coeff = 0, do_print = do_print)
+
+    # creating correct model
+    self.model_correct  = create_fc_crashing_model(N, W, B, [0] * len(N), KLips = KLips, func = activation, reg_type = None, reg_coeff = 0, do_print = do_print)
+
     # saving N
     self.N = N
 
     # saving name
     self.name = name
     
-    # making list if P is a number
-    if type(P) == float:
-      P = [P] * (len(N) - 2)
-      
-    # checking if the length is correct. Last and first layers cannot have failures so P is shorter than N
-    assert(len(N) == len(P) + 2)
-      
-    # saving P, first layer has zero probability of failure
-    self.P = [0.0] + P
-    
-    # maximal value of output from neuron (1 since using sigmoid)
-    self.C = 1. if activation == 'sigmoid' else np.zeros(len(N) - 2)
+    # saving p_inference
+    self.p_inference = p_inference
     
     # saving K
-    self.K = KLips
+    self.KLips = KLips
 
     # saving activation
     self.activation = activation
 
-  def predict_no_dropout(self, data):
-    """ Get correct network output for a given input vector """
-    return self.model_no_dropout.predict(np.array([data]))[0]
+  def predict_correct(self, data):
+    """ Get correct network output for a given input tensor """
+    assert len(data.shape) == 2, "Must have input nObj x nFeatures"
+    data = np.array(data).reshape(-1, self.N[0])
+    return self.model_correct.predict(data)
   
-  def predict(self, data, repetitions = 100):
-    """ Get crashed network outputs for given input vector and number of repetitions """
-    data = np.repeat(np.array([data]), repetitions, axis = 0)
-    return self.model.predict(data)
+  def predict_crashing(self, data, repetitions):
+    """ Get crashed network outputs for given input vector and number of repetitions
+        Input: array with shape (-1, dataCol)
+    """
+    assert len(data.shape) == 2, "Must have input nObj x nFeatures"
+    assert data.shape[1] == self.N[0], "Input shape must be nObj x nFeatures"
+    data = np.array(data).reshape(-1, self.N[0])
+    data_repeated = np.repeat(data, repetitions, axis = 0)
+    return self.model_crashing.predict(data_repeated).reshape(data.shape[0], repetitions, self.N[-1])
   
   def plot_error(experiment, errors):
     """ Plot the histogram of error  """
     
-    # plotting
     plt.figure()
     plt.title('Network error histogram plot')
     plt.xlabel('Network output error')
     plt.ylabel('Frequency')
     plt.hist(errors, density = True)
-    #plt.plot([true, true], [0, 1], label = 'True value')
-    #plt.legend()
     plt.savefig('error_hist_' + experiment.name + '.png')
     plt.show()
   
-  def get_error(experiment, inp, repetitions = 100):
+  def compute_error(self, data, repetitions = 100):
     """ Return error between crashed and correct networks """
-    return experiment.predict(inp, repetitions = repetitions) - experiment.predict_no_dropout(inp)
+    return self.predict_crashing(data, repetitions = repetitions) - np.repeat(self.predict_correct(data)[:, np.newaxis, :], repetitions, axis = 1)
 
   def activation_fcn(self, x):
     """ Get activation function at x """
@@ -116,6 +143,6 @@ class Experiment():
 
     return results
 
-  def weights_norm(self, ord = 1):
-    """ Calculate the norm of the weights """
-    return sum([np.linalg.norm(w, ord = ord) for w in self.W])
+  def get_inputs(self, how_many):
+    """ Get random normal input-shaped vectors """
+    return np.random.randn(how_many, self.N[0])
