@@ -208,7 +208,7 @@ def get_mean_std_error(self):
   return EDelta, EDelta2 ** 0.5
 
 @register_method
-def get_mean_error_v2(self):
+def get_mean_error_v2(self, data):
   """ Get theoretical bound for mean error given weights, the improved version """
 
   # Expectation of error
