@@ -105,6 +105,8 @@ class TrainExperiment(ConstantExperiment):
     return {'train': err_train, 'test': err_test}
 
   def get_inputs(self, how_many):
+    """ Get random inputs from the dataset. If how_many = 'all', then compute on all """
     x = np.vstack((self.x_train, self.x_test))
+    if how_many == 'all': return x
     indices = np.random.choice(x.shape[0], how_many, replace = False)
     return x[indices, :]

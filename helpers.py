@@ -65,3 +65,23 @@ def compute_rank_losses(data, key):
 def assert_equal(x, y, name_x = "x", name_y = "y"):
   """ Assert that x == y and if not, pretty-print the error """
   assert x == y, "%s = %s must be equal to %s = %s" % (str(name_x), str(x), str(name_y), str(y))
+
+def add_methods_from(*modules):
+    """ Register all methods from modules
+        @see http://www.qtrac.eu/pyclassmulti.html
+    """
+    def decorator(Class):
+        for module in modules:
+            for method in getattr(module, "__methods__"):
+                setattr(Class, method.__name__, method)
+        return Class
+    return decorator
+
+def register_method(methods):
+    """ Register a method in a class by add_methods_from
+        @see http://www.qtrac.eu/pyclassmulti.html
+    """
+    def register_method(method):
+        methods.append(method)
+        return method # Unchanged
+    return register_method
