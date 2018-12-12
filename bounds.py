@@ -5,6 +5,7 @@ from tqdm import tqdm
 from matplotlib import pyplot as plt
 from scipy.special import expit
 import sys
+from inspect import signature
 
 # for obtaining current TF session
 from keras.backend.tensorflow_backend import get_session
@@ -14,6 +15,34 @@ __methods__ = []
 register_method = register_method(__methods__)
 
 # All functions assume only crashes at first layer
+
+@register_method
+def run(self, data, repetitions = 100):
+  result_mean = {}
+  result_std = {}
+
+  # list of all bounds methods
+  bounds = [d for d in dir(self) if d.startswith('get_bound_')]
+
+  # calling all of them
+  for bound in bounds:
+    name = '_'.join(bound.split('_')[2:])
+    bound = getattr(self, bound)
+    if 'data' in signature(bound).parameters:
+        res = bound(data)
+    else:
+        res = bound()
+      
+    if 'mean' in res.keys():
+        result_mean[name] = res['mean']
+    if 'std' in res.keys():
+        result_std[name] = res['std']
+
+  # computing experimental error
+  res = self.compute_error(data, repetitions = repetitions)
+  result_mean['experiment'] = np.mean(res, axis = 1)
+  result_std['experiment'] = np.mean(res, axis = 1)
+  return result_mean, result_std
 
 @register_method
 def check_input_shape(self, data):
