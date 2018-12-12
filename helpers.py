@@ -1,5 +1,6 @@
 # standard imports
 import numpy as np
+import sys
 from functools import partial
 
 # calculate first norm
@@ -88,3 +89,18 @@ def register_method(methods):
         methods.append(method)
         return method # Unchanged
     return register_method
+
+def cache_graph(self):
+    """ Cache the result of a function in the class, subsequent call to a function will return a cached value """
+    caller_name = sys._getframe(1).f_code.co_name
+
+    def memoize_(f):
+      # if already have the attribute, return a function which returns it
+      def try_from_cache(*args, **kwargs):
+        attr = '__cache_' + caller_name + '_' + f.__name__ + '_args_%s_kwargs_%s' % (str(args), str(kwargs))
+        if not hasattr(self, attr):
+          setattr(self, attr, f(*args, **kwargs))
+          print('Storing %s' % attr)
+        return getattr(self, attr)
+      return try_from_cache
+    return memoize_

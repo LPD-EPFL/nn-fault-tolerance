@@ -78,5 +78,23 @@ assert rank_loss([1,2,3],[2,2,2]) == 1
 np.random.seed(0)
 assert np.abs(rank_loss(np.random.randn(1000), np.random.randn(1000)) - 0.5) < 0.1
 
+# example class
+class A():
+  def __init__(self, x = 1):
+    self.x = x
+  def calc_y(self):
+   @cache_graph(self)
+   def helper():
+     print("Running helper...")
+     return self.x * self.x
+   return helper()
+
+exp = A(1)
+exp1 = A(2)
+
+assert exp.calc_y() == 1
+assert exp1.calc_y() == 4
+assert exp.calc_y() == 1
+assert exp1.calc_y() == 4
 
 print("All done")

@@ -20,36 +20,12 @@ def check_input_shape(self, data):
   """ Check that data is (nObj, nFeatures) """
   assert isinstance(data, np.ndarray), "Input must be an np.array"
   assert len(data.shape) == 2, "Input must be two-dimensional"
-  assert data.shape[1] = self.N[0], "Input must be compliant with input shape (, %d)" % self.N[0]
+  assert data.shape[1] == self.N[0], "Input must be compliant with input shape (, %d)" % self.N[0]
 
+@register_method
 def check_p_layer0(self):
   """ Check that only have failures at first hidden layer output """
   assert all([p == 0 or i == 1 for i, p in enumerate(self.p_inference)]), "Must have failures only at first layer, other options are not implemented yet"
-
-def cache_graph(self):
-    """ Cache the result of a function in the class, subsequent call to a function will return a cached value """
-    caller_name = sys._getframe(1).f_code.co_name
-
-    def memoize_(f):
-      # name of the attribute where the data is saved
-      attr = caller_name + '_' + f.__name__ + '_args_%s_kwargs_%s_cached_tf_graph'
-
-      # if already have the attribute, return a function which returns it
-      if hasattr(self, attr):
-        def load_f(*args, **kwargs):
-          attr = attr % (str(args), str(kwargs))
-          return getattr(self, attr)
-        return load_f
-        
-      # otherwise, return a function which computes f and stores the value
-      else:
-        def f_and_store(*args, **kwargs):
-          attr = attr % (str(args), str(kwargs))
-          setattr(self, attr, f(*args, **kwargs))
-          print('Cached %s graph' % attr)
-          return getattr(self, attr)
-        return f_and_store
-    return memoize_
 
 @register_method
 def run_on_input(self, tensors, data):
@@ -66,18 +42,18 @@ def run_on_input(self, tensors, data):
   return {key: val for key, val in zip(keys, results)}
 
 @register_method
-def get_error_bound_v4(self, data):
+def get_bound_v4(self, data):
   """ Exact error mean and std up to O(p^2) in case even if x_i are not small """
 
   self.check_p_layer0()
 
-  @cache_graph
+  @cache_graph(self)
   def get_graph():
     # layers of a correct network
     layers = self.model_correct.layers
 
     # need to drop all components one by one in the second layer input
-    first_hidden_size = int(second_layer.input.shape[1])
+    first_hidden_size = int(layers[1].input.shape[1])
 
     # results for each neuron on first hidden layer
     outputs = []
@@ -85,7 +61,7 @@ def get_error_bound_v4(self, data):
     # loop over first hidden layer neurons
     for i in range(first_hidden_size):
       # crashing i'th neuron only
-      mask = [0 if i == j else 1 for j in range(N2)]
+      mask = [0 if i == j else 1 for j in range(first_hidden_size)]
   
       # data with one crash
       y = tf.multiply(layers[0].output, mask)
@@ -95,22 +71,22 @@ def get_error_bound_v4(self, data):
         y = layer.activation(tf.matmul(y, layer.weights[0]) + layer.weights[1])
 
       # adding y_crashed - y_correct
-      outputs.append(y - last_layer.output)
+      outputs.append(y - layers[-1].output)
 
     # std = sqrt(p * sum(outputs^2))
     # mean = -p * sum(outputs)
     p = self.p_inference[1]
-    return {'mean': -p * sum(outputs), 'std': tf.sqrt(p * sum(tf.square(outputs)))}
+    return {'mean': -p * sum(outputs), 'std': tf.sqrt(p * tf.reduce_sum(tf.square(outputs), axis = 0))}
 
   return self.run_on_input(get_graph(), data)
   
 @register_method
-def get_error_bound_v3(self, x):
+def get_bound_v3(self, data):
   """ Exact error up to O(p^2x_i^2), assumes infinite width and small p """
 
   self.check_p_layer0()
 
-  @cache_graph
+  @cache_graph(self)
   def get_graph():
     # resulting gradient w.r.t. first layer output
     grad = []
@@ -126,11 +102,11 @@ def get_error_bound_v3(self, x):
 
       # w.r.t. first layer output
       grad    += [tf.reduce_sum(          tf.multiply(tf.gradients([out], [layers[0].output])[0], layers[0].output), axis = 1)]
-      grad_sq += [tf.reduce_sum(tf.square(tf.multiply(tf.gradients([out], [layers[0].output])[0], layers[0].output), axis = 1))]
+      grad_sq += [tf.reduce_sum(tf.square(tf.multiply(tf.gradients([out], [layers[0].output])[0], layers[0].output)), axis = 1)]
 
     # compute the result
-    p = self.p_inderence[1]
-    return {'mean': tf.multiply(-p, grad), 'std': tf.sqrt(tf.multiply(p, grad_sq))}
+    p = self.p_inference[1]
+    return {'mean': tf.transpose(tf.multiply(-p, grad)), 'std': tf.transpose(tf.sqrt(tf.multiply(p, grad_sq)))}
 
   return self.run_on_input(get_graph(), data)
 
@@ -139,23 +115,23 @@ def get_bound_v2(self, data):
     """ Absolute values of matrices, mean/std """
     self.check_p_layer0()
 
-    @cache_graph
+    @cache_graph(self)
     def get_graph():
       # get input of the second layer network
-      inp = self.model_correct.layers[1].input
+      inp = tf.transpose(self.model_correct.layers[1].input)
 
       # get prob of failure
       p = self.p_inference[1]
 
       # get the product of all matrices (except first)
-      R = np.eye(self.N[-1])
-      Rsq = np.eye(self.N[-1])
+      R = tf.eye(self.N[-1], dtype = np.float32)
+      Rsq = tf.eye(self.N[-1], dtype = np.float32)
       for w in self.W[1:][1::-1]:
         R = R @ np.abs(w)
         Rsq = Rsq @ np.square(w)
 
       # mean = p Rx, std^2 = p Rsq x^2
-      return {'mean': p * tf.matmul(R, inp), 'std': tf.sqrt(p * tf.matmul(Rsq, tf.square(inp)))}
+      return {'mean': p * tf.transpose(tf.matmul(R, inp)), 'std': tf.transpose(tf.sqrt(p * tf.matmul(Rsq, tf.square(inp))))}
 
     return self.run_on_input(get_graph(), data)
 
@@ -167,10 +143,10 @@ def _get_bound_norm(self, data, ord = 2):
   """
   self.check_p_layer0()
 
-  @cache_graph
+  @cache_graph(self)
   def get_graph(ord = ord):
     layers = self.model_correct.layers
-    w_prod = np.prod([np.linalg.norm(w, ord = ord) for w in self.W[1:]]
+    w_prod = np.prod([np.linalg.norm(w, ord = ord) for w in self.W[1:]])
     p = self.p_inference[1]
     return {'mean': p * w_prod * tf.norm(layers[0].input, ord = ord, axis = 1)}
 
@@ -178,21 +154,21 @@ def _get_bound_norm(self, data, ord = 2):
 
 # adding norm bounds
 @register_method
-def get_bound_infnorm(self, data):
+def get_bound_v1_infnorm(self, data):
   return self._get_bound_norm(data, ord = np.inf)
 
 @register_method
-def get_bound_1norm(self, data):
+def get_bound_v1_1norm(self, data):
   return self._get_bound_norm(data, ord = 1)
 
 @register_method
-def get_bound_2norm(self, data):
+def get_bound_v1_2norm(self, data):
   return self._get_bound_norm(data, ord = 2)
 
 @register_method
 def _get_bound_sum_norm(self, ord):
   """ Calculate the norm of the weights """
-  return sum([np.linalg.norm(w, ord = ord) for w in self.W])
+  return {'mean': sum([np.linalg.norm(w, ord = ord) for w in self.W])}
 
 # adding sum norm bounds
 @register_method
