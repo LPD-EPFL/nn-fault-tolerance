@@ -118,56 +118,14 @@ def run(self, repetitions = 10000, inputs = 50, do_plot = True, do_print = True,
   }
 
 @register_method
-def get_wb(self, layer):
-  """ Get weight and bias matrix """
-  return np.vstack((self.W[layer], self.B[layer]))
-
-@register_method
-def get_max_f(self, layer, func):
-  """ Maximize func(weights) over neurons in layer """
-  wb = self.W[layer]
-  res = [func(w_neuron) for w_neuron in wb.T]
-  return np.max(res)
-
-@register_method
-def get_all_f(self, layer, func):
-  """ Return array func(weights) over neurons in layer """
-  wb = self.W[layer]
-  #print(wb.shape, len(wb.T))
-  res = [func(w_neuron) for w_neuron in wb.T]
-  return res
-
-@register_method
-def get_max_f_xy(self, layer, func, same_only = False):
-  """ Maximize func(w1, w2) over neurons in layer """
-  wb = self.W[layer]
-  if same_only: res = [func(w_neuron, w_neuron) for w_neuron in wb.T]
-  else: res = [func(w_neuron1, w_neuron2) for w_neuron1 in wb.T for w_neuron2 in wb.T]
-  return np.max(res)
-
-@register_method
-def get_C(self, layer):
- return self.C if self.activation == 'sigmoid' else np.max(self.C[layer - 1])
-
-@register_method
-def get_Carr(self, layer):
- return np.ones(self.N[layer]) if self.activation == 'sigmoid' else self.C[layer - 1]
-
-@register_method
-def get_mean_std_error(self):
-  """ Get theoretical bound for mean and std of error given weights """
+def get_mean_error_v1(self):
+  """ Get theoretical bound for the mean (infinity norm) """
 
   # Expectation of error
   EDelta = 0.
 
-  # Expectation of error squared
-  EDelta2 = 0.
-
   # Array of expectations
   EDeltaArr = [0]
-
-  # Array of expectations of squares
-  EDelta2Arr = [0]
 
   # Loop over layers
   for layer in range(1, len(self.W)):
@@ -209,7 +167,7 @@ def get_mean_std_error(self):
 
 @register_method
 def get_mean_error_v2(self, data):
-  """ Get theoretical bound for mean error given weights, the improved version """
+  """ Get theoretical bound (infinity norm) for mean error given weights, the improved version """
 
   # Expectation of error
   EDelta = np.zeros(self.N[1])
@@ -468,19 +426,35 @@ def get_exact_error_v3(self, x, ifail = 0):
   return error
 
 @register_method
-def get_norm_error(self, ord = 2, do_abs = False):
-  """ Compute error for arbitrary norm, see Article section 2.2 """
-  C = None
-  if self.activation == 'sigmoid':
-    C = self.C
-  elif self.activation == 'relu':
-    C = np.linalg.norm(self.C[0], ord = ord)
-  else: raise(NotImplementedError("Function does not work with activation " + self.activation))
-  res = max(self.P) * C
-  for w in self.W[1:]:
-    w1 = np.abs(w) if do_abs else w
-    res *= np.linalg.norm(w1.T, ord = ord)
-  return res
+def check_input_shape(self, data):
+  """ Check that data is (nObj, nFeatures) """
+  assert isinstance(data, np.ndarray), "Input must be an np.array"
+  assert len(data.shape) == 2, "Input must be two-dimensional"
+  assert data.shape[1] = self.N[0], "Input must be compliant with input shape (, %d)" % self.N[0]
+
+def check_p_layer0(self):
+  """ Check that only have failures at first hidden layer output """
+  assert all([p == 0 or i == 1 for i, p in enumerate(self.P)]), "Must have failures only at first layer, other options are not implemented yet"
+
+@register_method
+def get_mean_error_norm(self, data, ord = 2):
+  """ Compute error for arbitrary norm, see Article section 2.2
+      Input: data with shape (nObjects, nFeatures)
+      Note that we assume error in the first layer only
+  """
+  self.check_input_shape(data)
+  self.check_p_layer0()
+
+  # first layer
+  layer0 = self.model_correct.layers[0]
+
+  # running first layer on data and obtaining output
+  first_layer_output = get_session().run(layer0.output, feed_dict = {layer0.input.name: data})
+
+  # calculating product of matrix norms
+  w_prod = np.prod([np.linalg.norm(w.T, ord = ord) for w in self.W[1:]])
+
+  return self.P[1] * w_prod * np.linalg.norm(first_layer_output, axis = 1)
 
 @register_method
 def get_mean_error_v3(self, data, do_abs = False):
