@@ -17,18 +17,6 @@ for activation in ['sigmoid', 'relu']:
     # checking that forward pass is implemented properly
     assert np.linalg.norm(exp.forward_pass_manual(x0).reshape(-1) - exp.predict_no_dropout(x0.reshape(-1))) < 1e-5, "Forward pass does not work properly: manual and TF values disagree"
 
-    # test that norm_error(infty) == mean_v1
-    assert np.allclose(exp.get_mean_std_error()[0], exp.get_norm_error(ord = np.infty)), "One of implementations of bound v1 (mean) is incorrect"
-
-    # test that |WL|*...*|W_2|*C*p == mean_v2
-    R = np.eye(exp.N[-1])
-    for w in exp.W[1:][1::-1]:
-        R = R @ np.abs(w.T)
-    v21 = exp.get_mean_error_v2()
-    inp = np.ones(exp.N[1]) if activation == 'sigmoid' else exp.C[0]
-    v22 = R @ inp * max(exp.P)
-    assert np.allclose(v21, v22), "One of implementations of bound v2 (mean) is incorrect got %s %s" % (str(v21), str(v22))
-
     # TEST exact expectation: tf implementation, O(p^2) implementation
     errors = exp.get_error(x0.reshape(-1), repetitions = 10000)
     exp_mean = np.mean(errors, axis = 0)
@@ -89,6 +77,7 @@ class A():
      return self.x * self.x
    return helper()
 
+# checking cache_graph
 exp = A(1)
 exp1 = A(2)
 
