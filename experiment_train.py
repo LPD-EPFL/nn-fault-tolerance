@@ -8,20 +8,20 @@ from tqdm import tqdm
 import sys
 
 class TrainExperiment(Experiment):
-  def __init__(self, x_train, y_train, x_test, y_test, N, Pinference = None, Ptrain = None, task = 'classification', KLips = 1, epochs = 20, activation = 'sigmoid', reg_type = 0, reg_coeff = 0.01, do_print = False, name = 'exp'):
+  def __init__(self, x_train, y_train, x_test, y_test, N, p_inference = None, p_train = None, task = 'classification', KLips = 1, epochs = 20, activation = 'sigmoid', reg_type = None, reg_coeff = 0.01, do_print = False, name = 'exp'):
     """ Get a trained with MSE loss network with configuration (N, P, activation) and reg_type(reg_coeff) with name. The last layer is linear
         N: array with shapes [hidden1, hidden2, ..., hiddenLast]. Input and output shapes are determined automatically
-        Pinference: array with [p_input, p_h1, ..., p_hlast, p_output]: inference failure probabilities
+        p_inference: array with [p_input, p_h1, ..., p_hlast, p_output]: inference failure probabilities
         Ptrain: same for the train
     """
 
     # fixing Pinference
-    if Pinference == None:
-      Pinference = [0] * (len(N) + 2)
+    if p_inference == None:
+      p_inference = [0] * (len(N) + 2)
 
     # fixing Ptrain
-    if Ptrain == None:
-      Ptrain = [0] * (len(N) + 2)
+    if p_train == None:
+      p_train = [0] * (len(N) + 2)
 
     # obtaining input/output shape
     input_shape = x_train[0].size
@@ -32,8 +32,8 @@ class TrainExperiment(Experiment):
 
     # input check
     assert task in ['classification', 'regression'], "Only support regression and classification"
-    assert len(Pinference) == len(Ptrain), "Pinference and Ptrain must have the same length"
-    assert len(N) == len(Ptrain), "Ptrain must have two more elements compared to N"
+    assert len(p_inference) == len(p_train), "Pinference and p_train must have the same length"
+    assert len(N) == len(p_train), "Ptrain must have two more elements compared to N"
     assert input_shape > 0, "Input must exist"
     assert output_shape > 0, "Output must exist"
 
@@ -50,7 +50,7 @@ class TrainExperiment(Experiment):
       B += [np.random.randn(N[i])]
 
     # creating a model
-    model = create_fc_crashing_model(N, W, B, Ptrain, KLips = KLips, func = activation, reg_type = reg_type, reg_coeff = reg_coeff, do_print = do_print)
+    model = create_fc_crashing_model(N, W, B, p_train, KLips = KLips, func = activation, reg_type = reg_type, reg_coeff = reg_coeff, do_print = do_print)
 
     # fitting the model on the train data
     history = model.fit(x_train, y_train, verbose = do_print, batch_size = 10000, epochs = epochs, validation_data = (x_test, y_test))
@@ -75,11 +75,11 @@ class TrainExperiment(Experiment):
     
     # obtaining trained weights and biases
     W = model.get_weights()[0::2]
+    W = [w.T for w in W]
     B = model.get_weights()[1::2]
 
     # creating "crashing" and "normal" models
-    ConstantExperiment.__init__(self, N, P, KLips, W, B, activation, do_print, name = name)
-    self.layers = self.model_no_dropout.layers[:-1]
+    Experiment.__init__(self, N, W, B, p_inference, KLips = KLips, activation = activation, do_print = do_print, name = name)
 
   def get_accuracy(self, inputs = 1000, repetitions = 1000, tqdm_ = lambda x : x, no_dropout = False):
     if self.task != 'classify':
