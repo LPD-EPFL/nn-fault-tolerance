@@ -1,4 +1,5 @@
 from helpers import *
+import numpy as np
 from experiment_train import *
 from keras.datasets import mnist, boston_housing
 

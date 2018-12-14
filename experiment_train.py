@@ -1,6 +1,5 @@
 from keras import backend as K
 from helpers import *
-import numpy as np
 from experiment import *
 from matplotlib import pyplot as plt
 import pickle
@@ -8,7 +7,7 @@ from tqdm import tqdm
 import sys
 
 class TrainExperiment(Experiment):
-  def __init__(self, x_train, y_train, x_test, y_test, N, p_inference = None, p_train = None, task = 'classification', KLips = 1, epochs = 20, activation = 'sigmoid', reg_type = None, reg_coeff = 0.01, do_print = False, name = 'exp'):
+  def __init__(self, x_train, y_train, x_test, y_test, N, p_inference = None, p_train = None, task = 'classification', KLips = 1, epochs = 20, activation = 'sigmoid', reg_type = None, reg_coeff = 0.01, do_print = False, name = 'exp', seed = 0):
     """ Get a trained with MSE loss network with configuration (N, P, activation) and reg_type(reg_coeff) with name. The last layer is linear
         N: array with shapes [hidden1, hidden2, ..., hiddenLast]. Input and output shapes are determined automatically
         p_inference: array with [p_input, p_h1, ..., p_hlast, p_output]: inference failure probabilities
@@ -43,6 +42,9 @@ class TrainExperiment(Experiment):
     # remembering the dataset
     self.x_train, self.y_train, self.x_test, self.y_test = x_train, y_train, x_test, y_test
 
+    # seeding the weights generation
+    np.random.seed(seed)
+
     # creating weight initialization
     W, B = [], []
     for i in range(1, len(N)):
@@ -56,7 +58,7 @@ class TrainExperiment(Experiment):
     history = model.fit(x_train, y_train, verbose = do_print, batch_size = 10000, epochs = epochs, validation_data = (x_test, y_test))
 
     # plotting the loss
-    if do_print:
+    if do_print and epochs > 0:
       plt.figure()
 
       # determining what to plot (target)
