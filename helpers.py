@@ -2,6 +2,7 @@
 import numpy as np
 import sys
 from functools import partial
+import pandas as pd
 
 # calculate first norm
 norm1 = partial(np.linalg.norm, ord = 1)
@@ -100,7 +101,12 @@ def cache_graph(self):
         attr = '__cache_' + caller_name + '_' + f.__name__ + '_args_%s_kwargs_%s' % (str(args), str(kwargs))
         if not hasattr(self, attr):
           setattr(self, attr, f(*args, **kwargs))
-          print('Storing %s' % attr)
+          #print('Storing %s' % attr)
         return getattr(self, attr)
       return try_from_cache
     return memoize_
+
+def print_shape(r, name):
+  """ Print shapes of each element in a dictionary r """
+  print('=== Shapes of %s ===' % str(name))
+  print(pd.DataFrame([[key, np.array(value).shape] for key, value in r.items()], columns = ['name', 'shape']))

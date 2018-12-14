@@ -9,10 +9,10 @@ from scipy.special import expit
 from keras.backend.tensorflow_backend import get_session
 
 # importing other parts of the class
-import bad_input_search, bounds
+import bad_input_search, bounds, process_data
 
 # adding other parts of the class
-@add_methods_from(bad_input_search, bounds)
+@add_methods_from(bad_input_search, bounds, process_data)
 class Experiment():
   """ One experiment on neuron crash, contains a fixed weights network """
   def __init__(self, N, W, B, p_inference, KLips = 1, activation = 'sigmoid', do_print = False, name = 'exp'):

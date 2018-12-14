@@ -41,7 +41,7 @@ def run(self, data, repetitions = 100):
   # computing experimental error
   res = self.compute_error(data, repetitions = repetitions)
   result_mean['experiment'] = np.mean(res, axis = 1)
-  result_std['experiment'] = np.mean(res, axis = 1)
+  result_std['experiment'] = np.std(res, axis = 1)
   return result_mean, result_std
 
 @register_method
@@ -105,7 +105,7 @@ def get_bound_v4(self, data):
     # std = sqrt(p * sum(outputs^2))
     # mean = -p * sum(outputs)
     p = self.p_inference[1]
-    return {'mean': -p * sum(outputs), 'std': tf.sqrt(p * tf.reduce_sum(tf.square(outputs), axis = 0))}
+    return {'mean': p * tf.reduce_sum(outputs, axis = 0), 'std': tf.sqrt(p * tf.reduce_sum(tf.square(outputs), axis = 0))}
 
   return self.run_on_input(get_graph(), data)
   
