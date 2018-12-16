@@ -155,7 +155,7 @@ def get_bound_v2(self, data):
       # get the product of all matrices (except first)
       R = tf.eye(self.N[-1], dtype = np.float32)
       Rsq = tf.eye(self.N[-1], dtype = np.float32)
-      for w in self.W[1:][1::-1]:
+      for w in self.W[1:][::-1]:
         R = R @ np.abs(w)
         Rsq = Rsq @ np.square(w)
 
