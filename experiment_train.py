@@ -7,7 +7,7 @@ from tqdm import tqdm
 import sys
 
 class TrainExperiment(Experiment):
-  def __init__(self, x_train, y_train, x_test, y_test, N, p_inference = None, p_train = None, task = 'classification', KLips = 1, epochs = 20, activation = 'sigmoid', reg_type = None, reg_coeff = 0.01, do_print = False, name = 'exp', seed = 0):
+  def __init__(self, x_train, y_train, x_test, y_test, N, p_inference = None, p_train = None, task = 'classification', KLips = 1, epochs = 20, activation = 'sigmoid', reg_type = None, reg_coeff = 0.01, do_print = False, name = 'exp', seed = 0, batch_size = 10000):
     """ Get a trained with MSE loss network with configuration (N, P, activation) and reg_type(reg_coeff) with name. The last layer is linear
         N: array with shapes [hidden1, hidden2, ..., hiddenLast]. Input and output shapes are determined automatically
         p_inference: array with [p_input, p_h1, ..., p_hlast, p_output]: inference failure probabilities
@@ -55,7 +55,7 @@ class TrainExperiment(Experiment):
     model = create_fc_crashing_model(N, W, B, p_train, KLips = KLips, func = activation, reg_type = reg_type, reg_coeff = reg_coeff, do_print = do_print)
 
     # fitting the model on the train data
-    history = model.fit(x_train, y_train, verbose = do_print, batch_size = 10000, epochs = epochs, validation_data = (x_test, y_test))
+    history = model.fit(x_train, y_train, verbose = do_print, batch_size = batch_size, epochs = epochs, validation_data = (x_test, y_test))
 
     # plotting the loss
     if do_print and epochs > 0:
@@ -97,7 +97,12 @@ class TrainExperiment(Experiment):
     correct = [pred == ans for pred, ans in zip(predictions, answers)]
     return np.sum(correct) / (inputs * repetitions)
 
-  def get_mae_nocrash(self):
+  def get_mae_crash(self, repetitions = 100):
+    err_test = np.mean(np.abs(np.mean(self.predict_crashing(self.x_test, repetitions = repetitions) - self.y_test, axis = 1)))
+    err_train = np.mean(np.abs(np.mean(self.predict_crashing(self.x_train, repetitions = repetitions) - self.y_train, axis = 1)))
+    return {'train': err_train, 'test': err_test}
+
+  def get_mae_correct(self):
     """ Get mean absolute error for train and test datasets """
     err_train = np.mean(np.abs(self.model_no_dropout.predict(self.x_train) - self.y_train))
     err_test  = np.mean(np.abs(self.model_no_dropout.predict(self.x_test)  - self.y_test))
