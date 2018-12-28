@@ -49,7 +49,7 @@ def get_custom_activation(KLips, func):
     else: raise NotImplementedError("Activation function %s is not supported" % str(func))
   return custom_activation
 
-def create_fc_crashing_model(Ns, weights, biases, p_fail, KLips = 1, func = 'sigmoid', reg_type = None, reg_coeff = 0, do_print = True):
+def create_fc_crashing_model(Ns, weights, biases, p_fail, KLips = 1, func = 'sigmoid', reg_type = None, reg_coeff = 0, do_print = True, loss = keras.losses.mean_squared_error, optimizer = keras.optimizers.Adadelta()):
   """ Create a simple network with given dropout prob, weights and Lipschitz coefficient for sigmoid
       Ns: array of shapes: [input, hidden1, hidden2, ..., output]
       weights: array with matrices. The shape must be [hidden1 x input, hidden2 x hidden1, ..., output x hiddenLast]
@@ -121,8 +121,8 @@ def create_fc_crashing_model(Ns, weights, biases, p_fail, KLips = 1, func = 'sig
       model.add(IndependentCrashes(p, input_shape = (N_current, )))
 
   # compiling the model
-  model.compile(loss=keras.losses.mean_squared_error,
-              optimizer=keras.optimizers.Adadelta(),
+  model.compile(loss=loss,
+              optimizer=optimizer,
               metrics=['accuracy', 'mean_squared_error', 'mean_absolute_error'])
 
   # printing the summary
