@@ -58,6 +58,7 @@ def process_scalar_output(self, r, name = "", do_plot = True):
     plt.ylabel('Absolute correlation with experiment')
     plt.bar(other_keys, np.abs([corr[x] for x in other_keys]))
     plt.xticks(rotation=70)
+    plt.savefig('figures/comparison_corr_%s.eps' % name, bbox_inches = 'tight')
     plt.show()
 
   # plotting bound comparison via rank loss
@@ -68,6 +69,7 @@ def process_scalar_output(self, r, name = "", do_plot = True):
     other_byloss = sorted(other_keys, key = lambda x : loss[x])
     plt.bar(other_keys, [loss[x] for x in other_byloss])
     plt.xticks(rotation=70)
+    plt.savefig('figures/comparison_rank_%s.eps' % name, bbox_inches = 'tight')
     plt.show()
 
   # plot subplots, name_fcn(key, idx) -> str; fcn(axis, key)
@@ -82,11 +84,13 @@ def process_scalar_output(self, r, name = "", do_plot = True):
       axs[i].set_ylabel(key)
       fcn(axs[i], key)
     plt.show()
+    return fig
 
   # plotting error of error histogram
   if do_plot:
-    key_subplots(lambda key, i: 'Error of error' if i == 0 else 'e.e.',
-                 lambda ax, key : ax.hist(data[main_key] - data[key]))
+    fig = key_subplots(lambda key, i: 'Error of error' if i == 0 else 'e.e.',
+                       lambda ax, key : ax.hist(data[main_key] - data[key]))
+    fig.savefig('figures/comparison_ee_%s.eps' % name, bbox_inches = 'tight')
 
   # plotting absolute relative error of error
   if do_plot:
@@ -94,13 +98,15 @@ def process_scalar_output(self, r, name = "", do_plot = True):
       rel_error = np.abs((data[main_key] - data[key]) / data[main_key])
       rel_error[rel_error >= 2] = 2
       return rel_error
-    key_subplots(lambda key, i: 'Abs. rel. error of error min\'d w 2' if i == 0 else 'min(2,a.r.e.e.)',
-                 lambda ax, key : ax.hist(prepare_data(key)))
+    fig = key_subplots(lambda key, i: 'Abs. rel. error of error min\'d w 2' if i == 0 else 'min(2,a.r.e.e.)',
+                       lambda ax, key : ax.hist(prepare_data(key)))
+    fig.savefig('figures/comparison_aree_%s.eps' % name, bbox_inches = 'tight')
 
   # plotting scatter plots with experimental mean, if requested
   if do_plot:
-    key_subplots(lambda key, i: '%s=%.2f Loss=%.2f' % (name + ', corr with exp' if i == 0 else 'c.w.e.', corr[key], loss[key]),
-                 lambda ax, key: ax.scatter(data[main_key], data[key] * np.sign(corr[key])))
+    fig = key_subplots(lambda key, i: '%s=%.2f Loss=%.2f' % (name + ', corr with exp' if i == 0 else 'c.w.e.', corr[key], loss[key]),
+                       lambda ax, key: ax.scatter(data[main_key], data[key] * np.sign(corr[key])))
+    fig.savefig('figures/comparison_scatter_%s.eps' % name, bbox_inches = 'tight')
 
   # returning comparison dataframe
   return res
