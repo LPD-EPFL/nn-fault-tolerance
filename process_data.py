@@ -28,7 +28,7 @@ def process_scalar_output(self, r, name = "", do_plot = True):
   main_key = 'experiment'
 
   # number of data points
-  data_points = r['experiment'].shape[0]
+  data_points = r[main_key].shape[0]
 
   # all compatible bounds
   all_keys = [key for key, value in r.items() if np.array(value).shape in [(data_points,), (data_points, 1)]]
@@ -60,18 +60,47 @@ def process_scalar_output(self, r, name = "", do_plot = True):
     plt.xticks(rotation=70)
     plt.show()
 
-  # plotting scatter plots with experimental mean, if requested
+  # plotting bound comparison via rank loss
   if do_plot:
+    plt.figure()
+    plt.title('Bound comparison ' + name)
+    plt.ylabel('Rank loss')
+    other_byloss = sorted(other_keys, key = lambda x : loss[x])
+    plt.bar(other_keys, [loss[x] for x in other_byloss])
+    plt.xticks(rotation=70)
+    plt.show()
+
+  # plot subplots, name_fcn(key, idx) -> str; fcn(axis, key)
+  def key_subplots(name_fcn, fcn):
     fig, axs = plt.subplots(3, 2, figsize=(10, 13))
     axs = axs.ravel()
     for i, key in enumerate(other_keys):
       if i > 5: break
-      axs[i].set_title('%s=%.2f Loss=%.2f' % (name + ', corr. with exp.' if i == 0 else 'C', corr[key], loss[key]))
+      axs[i].set_title(name_fcn(key, i))
       if i + 1 == len(other_keys):
         axs[i].set_xlabel(main_key)
       axs[i].set_ylabel(key)
-      axs[i].scatter(data[main_key], data[key] * np.sign(corr[key]))
+      fcn(axs[i], key)
     plt.show()
+
+  # plotting error of error histogram
+  if do_plot:
+    key_subplots(lambda key, i: 'Error of error' if i == 0 else 'e.e.',
+                 lambda ax, key : ax.hist(data[main_key] - data[key]))
+
+  # plotting absolute relative error of error
+  if do_plot:
+    def prepare_data(key):
+      rel_error = np.abs((data[main_key] - data[key]) / data[main_key])
+      rel_error[rel_error >= 2] = 2
+      return rel_error
+    key_subplots(lambda key, i: 'Abs. rel. error of error min\'d w 2' if i == 0 else 'min(2,a.r.e.e.)',
+                 lambda ax, key : ax.hist(prepare_data(key)))
+
+  # plotting scatter plots with experimental mean, if requested
+  if do_plot:
+    key_subplots(lambda key, i: '%s=%.2f Loss=%.2f' % (name + ', corr with exp' if i == 0 else 'c.w.e.', corr[key], loss[key]),
+                 lambda ax, key: ax.scatter(data[main_key], data[key] * np.sign(corr[key])))
 
   # returning comparison dataframe
   return res
