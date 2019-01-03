@@ -86,4 +86,9 @@ assert exp1.calc_y() == 4
 assert exp.calc_y() == 1
 assert exp1.calc_y() == 4
 
+# accuracy tests
+assert accuracy(np.array([1,2,3]),np.array([4,5,3])) == 1. / 3
+assert accuracy(np.array([1,2,3]),np.array([4,5,6])) == 0.
+assert argmax_accuracy(np.array([[0,0,1], [1, 0, 0], [0, 1, 0]]), np.array([[0,2,1], [1, 0, 0], [0, 1, 0]])) == 2. / 3
+
 print("All done")
