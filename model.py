@@ -113,7 +113,7 @@ def create_fc_crashing_model(Ns, weights, biases, p_fail, KLips = 1, func = 'sig
       assert_equal(b.shape, (N_current, ), "Biases vector %d/%d shape" % (i, len(Ns) - 1), "Ns array entry")
 
       # adding a Dense layer
-      model.add(Dense(N_current, input_shape = (N_prev, ), kernel_initializer = Constant(w),
+      model.add(Dense(N_current, input_shape = (N_prev, ), kernel_initializer = Constant(w.T),
           activation = activation, bias_initializer = Constant(b), kernel_regularizer = regularizer))
 
     # adding dropout if needed
@@ -123,7 +123,7 @@ def create_fc_crashing_model(Ns, weights, biases, p_fail, KLips = 1, func = 'sig
   # compiling the model
   model.compile(loss=loss,
               optimizer=optimizer,
-              metrics=['accuracy', 'mean_squared_error', 'mean_absolute_error'])
+              metrics=[keras.metrics.categorical_accuracy, 'mean_squared_error', 'mean_absolute_error'])
 
   # printing the summary
   if do_print: model.summary()
