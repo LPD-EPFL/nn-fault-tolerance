@@ -60,6 +60,25 @@ def rank_loss(a, b):
     # return the ratio
     return 1. * res / NN
 
+def accuracy(ys, ys_true):
+  """ Get accuracy for array of ys and correct ys """
+  assert len(ys.shape) == 1, "Must have vector input (ys)"
+  assert len(ys_true.shape) == 1, "Must have vector input (ys_true)"
+  zero_one = [y == y_true for y, y_true in zip(ys, ys_true)]
+  return 1. * np.sum(zero_one) / len(zero_one)
+
+def matrix_argmax(X):
+  """ Return argmax for a matrix """
+  return np.unravel_index(X.argmax(), X.shape)
+
+def argmax_accuracy(ys, ys_true):
+  """ Get accuracy for one-hot vectors of shape (inputs, outputs) """
+  assert len(ys.shape) == 2, "Must have a matrix as input (ys)"
+  assert len(ys_true.shape) == 2, "Must have a matrix as input (ys_true)"
+  ys = np.argmax(ys, axis = 1)
+  ys_true = np.argmax(ys_true, axis = 1)
+  return accuracy(ys, ys_true)
+
 def compute_rank_losses(data, key):
     """ Compute rank losses for a dict with data, referenced to key """
     return {keyother: rank_loss(data[key], data[keyother]) for keyother in data.keys() if keyother != key}
