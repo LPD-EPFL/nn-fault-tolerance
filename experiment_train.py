@@ -41,6 +41,9 @@ class TrainExperiment(Experiment):
 
     # remembering the dataset
     self.x_train, self.y_train, self.x_test, self.y_test = x_train, y_train, x_test, y_test
+    if len(self.y_train.shape) == 1:
+      self.y_train = self.y_train.reshape(-1, 1)
+      self.y_test  = self.y_test.reshape(-1, 1)
 
     # seeding the weights generation
     np.random.seed(seed)
@@ -51,11 +54,14 @@ class TrainExperiment(Experiment):
       W += [np.random.randn(N[i], N[i - 1]) * np.sqrt(2. / N[i - 1]) / KLips]
       B += [np.random.randn(N[i])]
 
+    # print?
+    do_print_ = True if do_print == True else False
+
     # creating a model
-    model = create_fc_crashing_model(N, W, B, p_train, KLips = KLips, func = activation, reg_type = reg_type, reg_coeff = reg_coeff, do_print = do_print)
+    model = create_fc_crashing_model(N, W, B, p_train, KLips = KLips, func = activation, reg_type = reg_type, reg_coeff = reg_coeff, do_print = do_print_)
 
     # fitting the model on the train data
-    history = model.fit(x_train, y_train, verbose = do_print, batch_size = batch_size, epochs = epochs, validation_data = (x_test, y_test))
+    history = model.fit(x_train, y_train, verbose = do_print_, batch_size = batch_size, epochs = epochs, validation_data = (x_test, y_test))
 
     # plotting the loss
     if do_print and epochs > 0:
@@ -63,7 +69,7 @@ class TrainExperiment(Experiment):
 
       # determining what to plot (target)
       if task == 'classification':
-        target = 'acc'
+        target = 'categorical_accuracy'
       elif task == 'regression':
         target = 'loss'
       else: raise NotImplementedError("Plotting for this task is not supported")
@@ -81,31 +87,31 @@ class TrainExperiment(Experiment):
     B = model.get_weights()[1::2]
 
     # creating "crashing" and "normal" models
-    Experiment.__init__(self, N, W, B, p_inference, KLips = KLips, activation = activation, do_print = do_print, name = name)
+    Experiment.__init__(self, N, W, B, p_inference, KLips = KLips, activation = activation, do_print = do_print_, name = name)
 
-  def get_accuracy(self, inputs = 1000, repetitions = 1000, tqdm_ = lambda x : x, no_dropout = False):
-    if self.task != 'classify':
+    # sanity check
+    for i, (w_new, w_old) in enumerate(zip(self.model_correct.get_weights(), model.get_weights())):
+      diff = np.abs(w_new - w_old)
+      max_diff = matrix_argmax(diff)
+      assert np.allclose(w_new, w_old), "Error setting the weights %d %s %s %f" % (i, str(w_new.shape), str(w_old.shape), diff[max_diff])
+
+  def get_accuracy_correct(self):
+    if self.task != 'classification':
       print("Warning: the task is not a classification task")
-    if no_dropout: repetitions = 1
-    x = np.vstack((self.x_train, self.x_test))
-    y = np.vstack((self.y_train, self.y_test))
-    indices = np.random.choice(x.shape[0], inputs)
-    data = x[indices, :]
-    answers = np.argmax(y[indices], axis = 1)
-    predict_method = (lambda x : np.argmax(self.predict_no_dropout(x))) if no_dropout else (lambda x : np.argmax(self.predict(x, repetitions = repetitions), axis = 1))
-    predictions = [predict_method(inp) for inp in tqdm_(data)]
-    correct = [pred == ans for pred, ans in zip(predictions, answers)]
-    return np.sum(correct) / (inputs * repetitions)
+
+    acc_test  = argmax_accuracy(self.predict_correct(self.x_test) , self.y_test)
+    acc_train = argmax_accuracy(self.predict_correct(self.x_train), self.y_train)
+    return {'train': acc_train, 'test': acc_test}
 
   def get_mae_crash(self, repetitions = 100):
-    err_test = np.mean(np.abs(np.mean(self.predict_crashing(self.x_test, repetitions = repetitions) - self.y_test, axis = 1)))
-    err_train = np.mean(np.abs(np.mean(self.predict_crashing(self.x_train, repetitions = repetitions) - self.y_train, axis = 1)))
+    err_test  = np.mean(np.abs(self.predict_crashing(self.x_test , repetitions = repetitions) - np.repeat(self.y_test[:,  np.newaxis, :], repetitions, axis = 1)))
+    err_train = np.mean(np.abs(self.predict_crashing(self.x_train, repetitions = repetitions) - np.repeat(self.y_train[:, np.newaxis, :], repetitions, axis = 1)))
     return {'train': err_train, 'test': err_test}
 
   def get_mae_correct(self):
     """ Get mean absolute error for train and test datasets """
-    err_train = np.mean(np.abs(self.model_no_dropout.predict(self.x_train) - self.y_train))
-    err_test  = np.mean(np.abs(self.model_no_dropout.predict(self.x_test)  - self.y_test))
+    err_train = np.mean(np.abs(self.predict_correct(self.x_train) - self.y_train))
+    err_test  = np.mean(np.abs(self.predict_correct(self.x_test)  - self.y_test))
     return {'train': err_train, 'test': err_test}
 
   def get_inputs(self, how_many):
