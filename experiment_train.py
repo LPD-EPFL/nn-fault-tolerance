@@ -95,15 +95,17 @@ class TrainExperiment(Experiment):
       max_diff = matrix_argmax(diff)
       assert np.allclose(w_new, w_old), "Error setting the weights %d %s %s %f" % (i, str(w_new.shape), str(w_old.shape), diff[max_diff])
 
-  def get_accuracy_correct(self):
+  def get_accuracy_correct(self, test_only = False):
     if self.task != 'classification':
       print("Warning: the task is not a classification task")
 
     acc_test  = argmax_accuracy(self.predict_correct(self.x_test) , self.y_test)
-    acc_train = argmax_accuracy(self.predict_correct(self.x_train), self.y_train)
-    return {'train': acc_train, 'test': acc_test}
+    if not test_only:
+      acc_train = argmax_accuracy(self.predict_correct(self.x_train), self.y_train)
+      return {'train': acc_train, 'test': acc_test}
+    else: return {'test': acc_test}
 
-  def get_accuracy_crash(self, repetitions = 10):
+  def get_accuracy_crash(self, test_only = False, repetitions = 10):
     if self.task != 'classification':
       print("Warning: the task is not a classification task")
 
@@ -119,7 +121,10 @@ class TrainExperiment(Experiment):
       # accuracy = mean number of true predictions
       return np.mean(y_pred == y_true)
 
-    return {'train': _get_accuracy(self.x_train, self.y_train), 'test': _get_accuracy(self.x_test, self.y_test)}
+    if test_only:
+      return {'test': _get_accuracy(self.x_test, self.y_test)}
+    else:
+      return {'train': _get_accuracy(self.x_train, self.y_train), 'test': _get_accuracy(self.x_test, self.y_test)}
 
   def get_mae_crash(self, repetitions = 10):
     err_test  = np.mean(np.abs(self.predict_crashing(self.x_test , repetitions = repetitions) - np.repeat(self.y_test[:,  np.newaxis, :], repetitions, axis = 1)))
