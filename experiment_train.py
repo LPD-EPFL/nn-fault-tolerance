@@ -103,7 +103,25 @@ class TrainExperiment(Experiment):
     acc_train = argmax_accuracy(self.predict_correct(self.x_train), self.y_train)
     return {'train': acc_train, 'test': acc_test}
 
-  def get_mae_crash(self, repetitions = 100):
+  def get_accuracy_crash(self, repetitions = 10):
+    if self.task != 'classification':
+      print("Warning: the task is not a classification task")
+
+    def _get_accuracy(x, y):
+      """ Get crashing accuracy as a mean over repetitions and objects of whether or not the class was correct """
+
+      # get predicted values, argmax over output dimension
+      y_pred = np.argmax(self.predict_crashing(x, repetitions = repetitions), axis = 2)
+
+      # get true values, repeat to match the shape of y_pred
+      y_true = np.repeat(np.argmax(y, axis = 1)[:, np.newaxis], repetitions, axis = 1)
+
+      # accuracy = mean number of true predictions
+      return np.mean(y_pred == y_true)
+
+    return {'train': _get_accuracy(self.x_train, self.y_train), 'test': _get_accuracy(self.x_test, self.y_test)}
+
+  def get_mae_crash(self, repetitions = 10):
     err_test  = np.mean(np.abs(self.predict_crashing(self.x_test , repetitions = repetitions) - np.repeat(self.y_test[:,  np.newaxis, :], repetitions, axis = 1)))
     err_train = np.mean(np.abs(self.predict_crashing(self.x_train, repetitions = repetitions) - np.repeat(self.y_train[:, np.newaxis, :], repetitions, axis = 1)))
     return {'train': err_train, 'test': err_test}
