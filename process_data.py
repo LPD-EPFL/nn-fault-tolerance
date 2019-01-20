@@ -70,12 +70,12 @@ def process_scalar_output(self, r, name = "", do_plot = True):
 
   # plotting bound comparison via rank loss
   if do_plot:
-    plt.figure()
+    plt.figure(figsize=(3,2))
     #plt.title('Bound comparison ' + name)
     plt.ylabel('Rank loss')
     other_byloss = sorted(other_keys, key = lambda x : loss[x])
     plt.bar(other_keys, [loss[x] for x in other_byloss])
-    plt.xticks(rotation=70)
+    plt.xticks(rotation=85)
     plt.savefig('figures/comparison_rank_%s.pdf' % name, bbox_inches = 'tight')
     plt.show()
 
@@ -115,10 +115,10 @@ def process_scalar_output(self, r, name = "", do_plot = True):
       rel_error = np.abs((data[main_key] - data[key]) / (1e-20 + data[main_key]))
       rel_error[rel_error >= cutoff] = cutoff
       return rel_error
-    plt.figure()
+    plt.figure(figsize=(3,2))
     plt.boxplot([prepare_data(key) * 100 for key in other_keys], labels = other_keys)
     plt.ylabel('Relative error, %')
-    plt.xticks(rotation=70)
+    plt.xticks(rotation=85)
     plt.savefig('figures/comparison_boxplot_aree_%s.pdf' % name, bbox_inches = 'tight')
 
   # plotting scatter plots with experimental mean, if requested
