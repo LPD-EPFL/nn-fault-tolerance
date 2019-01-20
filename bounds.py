@@ -71,7 +71,7 @@ def run_on_input(self, tensors, data):
   return {key: val for key, val in zip(keys, results)}
 
 @register_method
-def get_bound_v4(self, data):
+def get_bound_b4(self, data):
   """ Exact error mean and std up to O(p^2) in case even if x_i are not small """
 
   self.check_p_layer0()
@@ -110,7 +110,7 @@ def get_bound_v4(self, data):
   return self.run_on_input(get_graph(), data)
   
 @register_method
-def get_bound_v3(self, data):
+def get_bound_b3(self, data):
   """ Exact error up to O(p^2x_i^2), assumes infinite width and small p """
 
   self.check_p_layer0()
@@ -140,7 +140,7 @@ def get_bound_v3(self, data):
   return self.run_on_input(get_graph(), data)
 
 @register_method
-def get_bound_v2(self, data):
+def get_bound_b2(self, data):
     """ Absolute values of matrices, mean/std """
     self.check_p_layer0()
 
@@ -183,15 +183,15 @@ def _get_bound_norm(self, data, ord = 2):
 
 # adding norm bounds
 @register_method
-def get_bound_v1_infnorm(self, data):
+def get_bound_b1_infnorm(self, data):
   return self._get_bound_norm(data, ord = np.inf)
 
 @register_method
-def get_bound_v1_1norm(self, data):
+def get_bound_b1_1norm(self, data):
   return self._get_bound_norm(data, ord = 1)
 
 @register_method
-def get_bound_v1_2norm(self, data):
+def get_bound_b1_2norm(self, data):
   return self._get_bound_norm(data, ord = 2)
 
 @register_method
