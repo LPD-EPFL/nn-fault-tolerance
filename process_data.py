@@ -1,6 +1,7 @@
 from helpers import *
 import numpy as np
 from tqdm import tqdm
+import matplotlib
 from matplotlib import pyplot as plt
 import sys
 
@@ -50,6 +51,12 @@ def process_scalar_output(self, r, name = "", do_plot = True):
 
   # resulting comparison dataframe
   res = pd.DataFrame({'bound': other_keys, 'corr': [corr[x] for x in other_keys], 'rank_loss': [loss[x] for x in other_keys]})
+
+  font = {'family' : 'normal',
+        'weight' : 'normal',
+        'size'   : 20}
+
+  matplotlib.rc('font', **font)
 
   # plotting bound comparison, if requested
   if do_plot:
