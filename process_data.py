@@ -119,7 +119,7 @@ def process_scalar_output(self, r, name = "", do_plot = True):
     plt.boxplot([prepare_data(key) * 100 for key in other_keys], labels = other_keys)
     plt.ylabel('Relative error, %')
     plt.xticks(rotation=70)
-    fig.savefig('figures/comparison_boxplot_aree_%s.pdf' % name, bbox_inches = 'tight')
+    plt.savefig('figures/comparison_boxplot_aree_%s.pdf' % name, bbox_inches = 'tight')
 
   # plotting scatter plots with experimental mean, if requested
   if do_plot:
