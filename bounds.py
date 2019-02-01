@@ -48,8 +48,8 @@ def run(self, data, repetitions = 100):
 def check_input_shape(self, data):
   """ Check that data is (nObj, nFeatures) """
   assert isinstance(data, np.ndarray), "Input must be an np.array"
-  assert len(data.shape) == 2, "Input must be two-dimensional"
-  assert data.shape[1] == self.N[0], "Input must be compliant with input shape (, %d)" % self.N[0]
+#  assert len(data.shape) == 2, "Input must be two-dimensional"
+#  assert data.shape[1] == self.N[0], "Input must be compliant with input shape (, %d)" % self.N[0]
 
 @register_method
 def check_p_layer0(self):
@@ -127,11 +127,11 @@ def get_bound_b3(self, data):
     # for all output dimensions
     for output_dim in range(self.N[-1]):
       # get derivative of output
-      out = layers[-1].output[:, output_dim]
+      out = self.model_correct.output[:, output_dim]
 
       # w.r.t. first layer output
-      grad    += [tf.reduce_sum(          tf.multiply(tf.gradients([out], [layers[0].output])[0], layers[0].output), axis = 1)]
-      grad_sq += [tf.reduce_sum(tf.square(tf.multiply(tf.gradients([out], [layers[0].output])[0], layers[0].output)), axis = 1)]
+      grad    += [tf.reduce_sum(          tf.multiply(tf.gradients([out], [layers[0].output])[0], layers[0].output))]
+      grad_sq += [tf.reduce_sum(tf.square(tf.multiply(tf.gradients([out], [layers[0].output])[0], layers[0].output)))]
 
     # compute the result
     p = self.p_inference[1]

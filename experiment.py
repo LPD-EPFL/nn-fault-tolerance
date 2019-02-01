@@ -66,17 +66,17 @@ class Experiment():
 
   def predict_correct(self, data):
     """ Get correct network output for a given input tensor """
-    assert len(data.shape) == 2, "Must have input nObj x nFeatures"
-    data = np.array(data).reshape(-1, self.N[0])
+#    assert len(data.shape) == 2, "Must have input nObj x nFeatures"
+#    data = np.array(data).reshape(-1, self.N[0])
     return self.model_correct.predict(data)
   
   def predict_crashing(self, data, repetitions):
     """ Get crashed network outputs for given input vector and number of repetitions
         Input: array with shape (-1, dataCol)
     """
-    assert len(data.shape) == 2, "Must have input nObj x nFeatures"
-    assert data.shape[1] == self.N[0], "Input shape must be nObj x nFeatures"
-    data = np.array(data).reshape(-1, self.N[0])
+#    assert len(data.shape) == 2, "Must have input nObj x nFeatures"
+#    assert data.shape[1] == self.N[0], "Input shape must be nObj x nFeatures"
+#    data = np.array(data).reshape(-1, self.N[0])
     data_repeated = np.repeat(data, repetitions, axis = 0)
     return self.model_crashing.predict(data_repeated).reshape(data.shape[0], repetitions, self.N[-1])
   
