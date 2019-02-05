@@ -1,5 +1,9 @@
-### Fatal Brain Damage. Code
-Code for the paper "Fatal Brain Damage" El Mahdi El Mhamdi Rachid Guerraoui Sergei Volodin, arxiv:xxxx.
+### Fatal Brain Damage
+Code for the paper "Fatal Brain Damage" by El Mahdi El Mhamdi, Rachid Guerraoui, Sergei Volodin, arxiv:xxxx.
+
+Swiss Federal Institute of Technology in Lausanne (EPFL), Distributed Computing Laboratory, 2018-2019.
+
+Correspondence to sergei.volodin@epfl.ch
 
 ### Installation
 To run a Jupyter notebook:
