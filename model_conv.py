@@ -113,3 +113,15 @@ def experiment_mean_std(exp, x, repetitions):
   result['mean'] = np.mean(r, axis = 1)
   result['std']  = np.std (r, axis = 1)
   return result
+
+def predict_kept(model, x, to_keep = None):
+    """ Predict knowing that the model output was modified with to_keep """
+    preds = model.predict(x)
+    if to_keep is not None:
+        result = np.zeros(1000)
+        for i, key in enumerate(to_keep):
+            result[key] = preds[0][i]
+        result = result.reshape(-1, 1000)
+    else:
+        result = preds
+    return result
