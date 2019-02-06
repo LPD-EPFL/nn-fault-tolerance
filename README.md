@@ -35,7 +35,7 @@ Code is written in Python 3 with Keras/TensorFlow and is documented.
 6. `Regularization.ipynb` regularizes networks with b3 variance bound to achieve fault tolerance
 
 ##### Additional or failed experiments
-1. `ConvNetTest-MNIST.ipynb`, `ConvNetTest-MNIST-Bigger.ipynb`, `ConvNetTest-VGG16.ipynb` test the b3 bound on larger networks
+1. `ConvNetTest-MNIST.ipynb`, `ConvNetTest-VGG16.ipynb` test the b3 bound on larger networks
 2. `BostonTh2QuadraticTest.ipynb` tries to test Corollary 4 from the main paper, see supplementary/Failed experiments
 3. `ErrorComparisonRandom.ipynb` compares random networks (see supplementary)
 4. `ComparisonIncreasingDropout.ipynb` compares networks trained with increasing dropout on Boston dataset (failed experiment)
