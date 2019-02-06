@@ -15,7 +15,7 @@ import bad_input_search, bounds, process_data
 @add_methods_from(bad_input_search, bounds, process_data)
 class Experiment():
   """ One experiment on neuron crash, contains a fixed weights network """
-  def __init__(self, N, W, B, p_inference, KLips = 1, activation = 'sigmoid', do_print = False, name = 'exp'):
+  def __init__(self, N, W, B, p_inference, KLips = 1, activation = 'sigmoid', do_print = False, name = 'exp', check_shape = True):
     """ Initialize a crashing neurons experiment with
         N array of shapes [input, hidden_1, ..., hidden_last, output]
         W: array with matrices. The shape must be [hidden1 x input, hidden2 x hidden1, ..., output x hiddenLast]
@@ -31,6 +31,9 @@ class Experiment():
     # printing some information    
     if do_print:
       print('Creating network for %d-dimensional input and %d-dimensional output, with %d hidden layers' % (N[0], N[-1], len(N) - 2))
+
+    # saving check_shape argument
+    self.check_shape = check_shape
 
     # fixing Pinference
     if p_inference == None:
@@ -66,17 +69,19 @@ class Experiment():
 
   def predict_correct(self, data):
     """ Get correct network output for a given input tensor """
-#    assert len(data.shape) == 2, "Must have input nObj x nFeatures"
-#    data = np.array(data).reshape(-1, self.N[0])
+    if self.check_shape:
+      assert len(data.shape) == 2, "Must have input nObj x nFeatures"
+      data = np.array(data).reshape(-1, self.N[0])
     return self.model_correct.predict(data)
   
   def predict_crashing(self, data, repetitions):
     """ Get crashed network outputs for given input vector and number of repetitions
         Input: array with shape (-1, dataCol)
     """
-#    assert len(data.shape) == 2, "Must have input nObj x nFeatures"
-#    assert data.shape[1] == self.N[0], "Input shape must be nObj x nFeatures"
-#    data = np.array(data).reshape(-1, self.N[0])
+    if self.check_shape:
+      assert len(data.shape) == 2, "Must have input nObj x nFeatures"
+      assert data.shape[1] == self.N[0], "Input shape must be nObj x nFeatures"
+      data = np.array(data).reshape(-1, self.N[0])
     data_repeated = np.repeat(data, repetitions, axis = 0)
     return self.model_crashing.predict(data_repeated).reshape(data.shape[0], repetitions, self.N[-1])
   
