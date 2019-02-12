@@ -9,10 +9,10 @@ from keras.callbacks import LearningRateScheduler, TensorBoard, ModelCheckpoint
 from keras.preprocessing.image import ImageDataGenerator
 from keras.regularizers import l2
 
-from networks.train_plot import PlotLearning
+from onepixel.networks.train_plot import PlotLearning
 
 # Code taken from https://github.com/BIGBALLON/cifar-10-cnn
-class LeNetMNIST:
+class CNNMNIST:
     def __init__(self, epochs=200, batch_size=128, load_weights=True, p_fail = 0.1):
         self.name               = 'lenet'
         self.model_filename     = 'networks/models/lenet.h5'
@@ -26,11 +26,7 @@ class LeNetMNIST:
         self.p_fail  		= p_fail
 
         if load_weights:
-            try:
-                self._model = load_model(self.model_filename)
-                print('Successfully loaded', self.name)
-            except (ImportError, ValueError, OSError):
-                print('Failed to load', self.name)
+            self._model = load_model(self.model_filename)
     
     def count_params(self):
         return self._model.count_params()
