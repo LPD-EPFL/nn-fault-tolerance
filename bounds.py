@@ -72,6 +72,20 @@ def run_on_input(self, tensors, data):
   return {key: val for key, val in zip(keys, results)}
 
 @register_method
+def run_on_input_output(self, tensors, data, y):
+  """ Run dict of tensors on input data """
+  self.check_input_shape(data)
+
+  # list of all keys, fixed order
+  keys = list(tensors.keys())
+
+  # running for all keys
+  results = get_session().run([tensors[key] for key in keys], feed_dict = {self.model_correct.layers[0].input.name: data, self.output_tensor: y})
+
+  # returning the result
+  return {key: val for key, val in zip(keys, results)}
+
+@register_method
 def get_bound_b4(self, data):
   """ Exact error mean and std up to O(p^2) in case even if x_i are not small """
 
@@ -110,6 +124,38 @@ def get_bound_b4(self, data):
 
   return self.run_on_input(get_graph(), data)
   
+@register_method
+def get_bound_b3_loss(self, data):
+  """ Exact error up to O(p^2x_i^2), assumes infinite width and small p """
+
+  self.check_p_layer0()
+
+  @cache_graph(self)
+  def get_graph():
+    # resulting gradient w.r.t. first layer output
+    grad = []
+    grad_sq = []
+
+    # list of layers
+    layers = self.model_correct.layers
+
+    # loss tensor
+    loss = self.loss
+
+    # w.r.t. first layer output
+    if self.check_shape:
+      grad    += [tf.reduce_sum(          tf.multiply(tf.gradients([loss], [layers[0].output])[0], layers[0].output), axis = 1)]
+      grad_sq += [tf.reduce_sum(tf.square(tf.multiply(tf.gradients([loss], [layers[0].output])[0], layers[0].output)), axis = 1)]
+    else:
+      grad    += [tf.reduce_sum(          tf.multiply(tf.gradients([loss], [layers[0].output])[0], layers[0].output))]
+      grad_sq += [tf.reduce_sum(tf.square(tf.multiply(tf.gradients([loss], [layers[0].output])[0], layers[0].output)))]
+
+    # compute the result
+    p = self.p_inference[1]
+    return {'mean': tf.transpose(tf.multiply(-p, grad)), 'std': tf.transpose(tf.sqrt(tf.multiply(p, grad_sq)))}
+
+  return self.run_on_input(get_graph(), data)
+
 @register_method
 def get_bound_b3(self, data):
   """ Exact error up to O(p^2x_i^2), assumes infinite width and small p """
