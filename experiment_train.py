@@ -89,6 +89,10 @@ class TrainExperiment(Experiment):
     # creating "crashing" and "normal" models
     Experiment.__init__(self, N, W, B, p_inference, KLips = KLips, activation = activation, do_print = do_print_, name = name)
 
+    # adding output tensor and loss tensor
+    self.output_tensor = tf.placeholder(tf.float32, shape = (None, output_shape))
+    self.loss = keras.losses.mean_squared_error(self.output_tensor, self.model_correct.output)
+
     # sanity check
     for i, (w_new, w_old) in enumerate(zip(self.model_correct.get_weights(), model.get_weights())):
       diff = np.abs(w_new - w_old)
@@ -143,3 +147,11 @@ class TrainExperiment(Experiment):
     if how_many == 'all': return x
     indices = np.random.choice(x.shape[0], how_many, replace = False)
     return x[indices, :]
+
+  def get_inputs_outputs(self, how_many):
+    """ Get random inputs from the dataset. If how_many = 'all', then compute on all """
+    x = np.vstack((self.x_train, self.x_test))
+    y = np.vstack((self.y_train, self.y_test))
+    if how_many == 'all': return x, y
+    indices = np.random.choice(x.shape[0], how_many, replace = False)
+    return x[indices, :], y[indices, :]

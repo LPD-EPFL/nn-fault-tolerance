@@ -125,7 +125,7 @@ def get_bound_b4(self, data):
   return self.run_on_input(get_graph(), data)
   
 @register_method
-def _get_bound_b3_loss(self, data):
+def _get_bound_b3_loss(self, data, outputs):
   """ Exact error up to O(p^2x_i^2), assumes infinite width and small p """
 
   self.check_p_layer0()
@@ -154,7 +154,7 @@ def _get_bound_b3_loss(self, data):
     p = self.p_inference[1]
     return {'mean': tf.transpose(tf.multiply(-p, grad)), 'std': tf.transpose(tf.sqrt(tf.multiply(p, grad_sq)))}
 
-  return self.run_on_input(get_graph(), data)
+  return self.run_on_input_output(get_graph(), data, outputs)
 
 @register_method
 def get_bound_b3(self, data):

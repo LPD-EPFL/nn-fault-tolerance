@@ -105,9 +105,9 @@ class Experiment():
     if self.activation == 'relu':
       x = np.copy(x)
       x[x < 0] = 0
-      return self.K * x
+      return self.KLips * x
     elif self.activation == 'sigmoid':
-      return expit(4 * self.K * x)
+      return expit(4 * self.KLips * x)
     else: raise(NotImplementedError("Activation %s is not implemented yet" % self.activation))
 
   def activation_grad(self, x):
