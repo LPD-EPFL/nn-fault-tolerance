@@ -125,7 +125,7 @@ def get_bound_b4(self, data):
   return self.run_on_input(get_graph(), data)
   
 @register_method
-def get_bound_b3_loss(self, data):
+def _get_bound_b3_loss(self, data):
   """ Exact error up to O(p^2x_i^2), assumes infinite width and small p """
 
   self.check_p_layer0()
