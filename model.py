@@ -32,6 +32,12 @@ from keras.initializers import Constant
 from keras.regularizers import l1, l2
 from numbers import Number
 from helpers import *
+from keras import Model, Input
+
+def IdentityLayer(input_shape=None):
+     """ A layer which does nothing """
+     return Lambda(
+         lambda x: x + 0, input_shape=input_shape, name='Identity')
 
 def IndependentCrashes(p_fail, input_shape = None):
   """ Make dropout work when using predict(), not only on train, without scaling """
@@ -141,3 +147,39 @@ def create_fc_crashing_model(Ns, weights, biases, p_fail, KLips = 1, func = 'sig
   # otherwise returning the parameters for compilation
   else:
     return model, parameters
+
+def faulty_model(model, p_inference):
+    """ Add crashes to every layer of the model """
+    
+    assert len(model.inputs) == 1, "Model must have exactly one input"
+    
+    # obtaining input/output shape 
+    in_shape = model.inputs[0].shape[1:]
+
+    # creating duplicate input
+    inp = Input(shape = in_shape)
+    
+    def faulty_net(inp, model = None, p_inference = None):
+        """ Obtain faulty output for input tensor inp """
+        
+        # current input
+        z = inp
+
+        # sanity check for input
+        assert type(p_inference) == list, "p_inference must be a list"
+        assert len(model.layers) == len(p_inference), "p must be present for every layer, now have |p|=%d and L=%d" % (
+            len(p_inference), len(model.layers))
+
+        # applying layers one-by-one
+        for p, layer in zip(p_inference, model.layers):
+            # applying layer
+            z = layer.call(z)
+
+            # adding independent crashes
+            z = IndependentCrashes(p, input_shape = z.shape)(z)
+
+        # outputting the result
+        return z
+
+    # model with crashes at each layer
+    return Model(inputs = inp, outputs = Lambda(partial(faulty_net, model = model, p_inference = p_inference))(inp))
