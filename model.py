@@ -34,6 +34,23 @@ from numbers import Number
 from helpers import *
 from keras import Model, Input
 
+class Balanced(keras.regularizers.Regularizer):
+    """Regularizer for (wmin/wmax)^2
+    # Arguments
+        mu: Float; multiplier
+    """
+
+    def __init__(self, mu = 0.0):
+        self.mu = K.cast_to_floatx(mu)
+
+    def __call__(self, x):
+        xsq = K.square(x)
+        regularization = self.mu * K.sum(K.max(xsq) / (0.00000001 + K.min(xsq)))
+        return regularization
+
+    def get_config(self):
+        return {'mu': float(self.mu)}
+
 def IdentityLayer(input_shape=None):
      """ A layer which does nothing """
      return Lambda(
@@ -77,7 +94,7 @@ def create_fc_crashing_model(Ns, weights, biases, p_fail, KLips = 1, func = 'sig
   assert_equal(len(Ns), len(weights) + 1, "Shape array length", "Weights array length + 1")
   assert_equal(len(biases), len(weights), "Biases array length", "Weights array length")
   assert func in ['relu', 'sigmoid'], "Activation %s must be either relu or sigmoid" % str(func)
-  assert reg_type in [None, 'l1', 'l2'], "Regularization %s must be either l1, l2 or None" % str(reg_type)
+  assert reg_type in [None, 'l1', 'l2', 'balanced'], "Regularization %s must be either l1, l2 or None" % str(reg_type)
   assert isinstance(KLips, Number), "KLips %s must be a number" % str(KLips)
   assert isinstance(reg_coeff, Number), "reg_coeff %s must be a number" % str(reg_coeff)
 
@@ -108,6 +125,8 @@ def create_fc_crashing_model(Ns, weights, biases, p_fail, KLips = 1, func = 'sig
           regularizer = l2(reg_coeff)
       elif reg_type == 'l1':
           regularizer = l1(reg_coeff)
+      elif reg_type == 'balanced':
+          regularizer = Balanced(reg_coeff)
       elif reg_type == None:
           regularizer = lambda w : 0
       else:
