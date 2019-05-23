@@ -154,6 +154,7 @@ def get_bound_b3(self, data):
 
   return self.run_on_input(get_graph(), data)
 
+@register_method
 def get_bound_b4(self, data):
   """ Exact error mean and std up to O(p^2) in case even if x_i are not small """
 
