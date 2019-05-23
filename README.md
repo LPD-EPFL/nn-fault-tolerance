@@ -1,9 +1,5 @@
-### Fatal Brain Damage
-Code for the paper "Fatal Brain Damage" by El Mahdi El Mhamdi, Rachid Guerraoui, Sergei Volodin, <a href="https://arxiv.org/abs/1902.01686">arxiv:1902.01686</a>.
-
-Swiss Federal Institute of Technology in Lausanne (EPFL), Distributed Computing Laboratory, 2018-2019.
-
-Correspondence to sergei.volodin@epfl.ch
+### Probabilistic Fault Tolerance of Neuromorphic Networks
+Code for the paper "Probabilistic Fault Tolerance of Neuromorphic Networks" 
 
 ### Installation
 To run a Jupyter notebook:
