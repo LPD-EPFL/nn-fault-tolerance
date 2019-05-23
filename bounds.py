@@ -48,7 +48,7 @@ def run(self, data, repetitions = 100):
 def check_input_shape(self, data):
   """ Check that data is (nObj, nFeatures) """
   assert isinstance(data, np.ndarray), "Input must be an np.array"
-  if self.check_shape:
+  if (not hasattr(self, 'check_shape')) or self.check_shape:
     assert len(data.shape) == 2, "Input must be two-dimensional"
     assert data.shape[1] == self.N[0], "Input must be compliant with input shape (, %d)" % self.N[0]
 
@@ -107,7 +107,7 @@ def _get_bound_b3_loss(self, data, outputs, weights = None):
     loss = self.loss
 
     # w.r.t. first layer output
-    if self.check_shape:
+    if (not hasattr(self, 'check_shape')) or self.check_shape:
       grad    += [tf.reduce_sum(          tf.multiply(tf.gradients([loss], [weights])[0], weights), axis = 1)]
       grad_sq += [tf.reduce_sum(tf.square(tf.multiply(tf.gradients([loss], [weights])[0], weights)), axis = 1)]
     else:
@@ -141,7 +141,8 @@ def get_bound_b3(self, data):
       out = self.model_correct.output[:, output_dim]
 
       # w.r.t. first layer output
-      if self.check_shape:
+      # check_shape is True by default
+      if (not hasattr(self, 'check_shape')) or self.check_shape:
         grad    += [tf.reduce_sum(          tf.multiply(tf.gradients([out], [layers[0].output])[0], layers[0].output), axis = 1)]
         grad_sq += [tf.reduce_sum(tf.square(tf.multiply(tf.gradients([out], [layers[0].output])[0], layers[0].output)), axis = 1)]
       else:
