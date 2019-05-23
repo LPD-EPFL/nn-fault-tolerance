@@ -98,6 +98,10 @@ def add_methods_from(*modules):
                   print(method.__name__)
                   raise Warning("Shadowing a previous method %s by loading module %s" % (str(method.__name__), str(module)))
                 setattr(Class, method.__name__, method)
+                # backward compatibility hack: get_bound_bX -> get_bound_v*
+                kw = 'get_bound_b'
+                if method.__name__.startswith(kw):
+                    setattr(Class, 'get_bound_v' + method.__name__[len(kw):], method)
         return Class
     return decorator
 
