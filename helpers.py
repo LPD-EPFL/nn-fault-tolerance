@@ -116,7 +116,7 @@ def btov(s):
     """ backward comp function """
     kw = 'get_bound_b'
     if s.startswith(kw):
-        return 'get_bound_v' + s[len(kw)]
+        return 'get_bound_v' + s[len(kw):]
     return s
 
 def cache_graph(self):
