@@ -99,9 +99,7 @@ def add_methods_from(*modules):
                   raise Warning("Shadowing a previous method %s by loading module %s" % (str(method.__name__), str(module)))
                 setattr(Class, method.__name__, method)
                 # backward compatibility hack: get_bound_bX -> get_bound_v*
-                kw = 'get_bound_b'
-                if method.__name__.startswith(kw):
-                    setattr(Class, 'get_bound_v' + method.__name__[len(kw):], method)
+                setattr(Class, btov(method.__name__), method)
         return Class
     return decorator
 
@@ -114,6 +112,13 @@ def register_method(methods):
         return method # Unchanged
     return register_method
 
+def btov(s):
+    """ backward comp function """
+    kw = 'get_bound_b'
+    if s.startswith(kw):
+        return 'get_bound_v' + s[len(kw)]
+    return s
+
 def cache_graph(self):
     """ Cache the result of a function in the class, subsequent call to a function will return a cached value """
     caller_name = sys._getframe(1).f_code.co_name
@@ -122,6 +127,9 @@ def cache_graph(self):
       # if already have the attribute, return a function which returns it
       def try_from_cache(*args, **kwargs):
         attr = '__cache_' + caller_name + '_' + f.__name__ + '_args_%s_kwargs_%s' % (str(args), str(kwargs))
+        if not hasattr(self, attr):
+          setattr(self, attr, f(*args, **kwargs))
+        attr = '__cache_' + btov(caller_name) + '_' + f.__name__ + '_args_%s_kwargs_%s' % (str(args), str(kwargs))
         if not hasattr(self, attr):
           setattr(self, attr, f(*args, **kwargs))
           #print('Storing %s' % attr)
