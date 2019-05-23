@@ -22,7 +22,7 @@ def run(self, data, repetitions = 100):
   result_std = {}
 
   # list of all bounds methods
-  bounds = [d for d in dir(self) if d.startswith('get_bound_')]
+  bounds = [d for d in dir(self) if d.startswith('get_bound_') and not d.startswith('get_bound_v')]
 
   # calling all of them
   for bound in bounds:
@@ -151,6 +151,44 @@ def get_bound_b3(self, data):
     # compute the result
     p = self.p_inference[1]
     return {'mean': tf.transpose(tf.multiply(-p, grad)), 'std': tf.transpose(tf.sqrt(tf.multiply(p, grad_sq)))}
+
+  return self.run_on_input(get_graph(), data)
+
+def get_bound_b4(self, data):
+  """ Exact error mean and std up to O(p^2) in case even if x_i are not small """
+
+  self.check_p_layer0()
+
+  @cache_graph(self)
+  def get_graph():
+    # layers of a correct network
+    layers = self.model_correct.layers
+
+    # need to drop all components one by one in the second layer input
+    first_hidden_size = int(layers[1].input.shape[1])
+
+    # results for each neuron on first hidden layer
+    outputs = []
+
+    # loop over first hidden layer neurons
+    for i in range(first_hidden_size):
+      # crashing i'th neuron only
+      mask = [0 if i == j else 1 for j in range(first_hidden_size)]
+  
+      # data with one crash
+      y = tf.multiply(layers[0].output, mask)
+  
+      # implementing the rest of the network
+      for layer in layers[1:]:
+        y = layer.activation(tf.matmul(y, layer.weights[0]) + layer.weights[1])
+
+      # adding y_crashed - y_correct
+      outputs.append(y - layers[-1].output)
+
+    # std = sqrt(p * sum(outputs^2))
+    # mean = -p * sum(outputs)
+    p = self.p_inference[1]
+    return {'mean': p * tf.reduce_sum(outputs, axis = 0), 'std': tf.sqrt(p * tf.reduce_sum(tf.square(outputs), axis = 0))}
 
   return self.run_on_input(get_graph(), data)
 
