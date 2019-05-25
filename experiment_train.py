@@ -135,6 +135,15 @@ class TrainExperiment(Experiment):
     err_train = np.mean(np.abs(self.predict_crashing(self.x_train, repetitions = repetitions) - np.repeat(self.y_train[:, np.newaxis, :], repetitions, axis = 1)))
     return {'train': err_train, 'test': err_test}
 
+  def get_mae_crash_data(self, x, y, repetitions = 10):
+    err = np.mean(np.abs(self.predict_crashing(x, repetitions = repetitions) - np.repeat(y[:, np.newaxis, :], repetitions, axis = 1)))
+    return err
+
+  def get_mae_correct_data(self, x, y):
+    """ Get mean absolute error for x, y """
+    err = np.mean(np.abs(self.predict_correct(x) - y))
+    return err
+
   def get_mae_correct(self):
     """ Get mean absolute error for train and test datasets """
     err_train = np.mean(np.abs(self.predict_correct(self.x_train) - self.y_train))
