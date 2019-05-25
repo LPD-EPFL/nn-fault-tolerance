@@ -35,21 +35,34 @@ from helpers import *
 from keras import Model, Input
 
 class Balanced(keras.regularizers.Regularizer):
-    """Regularizer for (wmin/wmax)^2
+    """Regularizer for (wmax/wmin)^2 for W_i = \sum\limits_j |W_ij|, see main paper, Eq. 1
     # Arguments
-        mu: Float; multiplier
+        mu: Float; the multiplier (regularization parameter)
+        eps: Float, the value to add in the denomenator so it does not blow up (should be smaller than the typical weight)
     """
 
-    def __init__(self, mu = 0.0):
+    def __init__(self, mu = 0.0, eps = 1e-5):
+        # just saving the parameters as floats
         self.mu = K.cast_to_floatx(mu)
+        self.eps = K.cast_to_floatx(eps)
 
     def __call__(self, x):
-        xsq = K.square(x)
-        regularization = self.mu * K.sum(K.max(xsq) / (0.00000001 + K.min(xsq)))
+        """ Compute regularization for input matrix x """
+        # taking the absolute value
+        x = K.abs(x)
+
+        # summing over the first axis (Keras uses transposed w.r.t. our notation matrices)
+        x = K.sum(x, axis = 0)
+
+        # squaring to comply with Eq.1
+        x = K.square(x)
+
+        # resulting regularization
+        regularization = self.mu * K.max(x) / (self.eps + K.min(x))
         return regularization
 
     def get_config(self):
-        return {'mu': float(self.mu)}
+        return {'mu': float(self.mu), 'eps': float(self.eps)}
 
 def IdentityLayer(input_shape=None):
      """ A layer which does nothing """
@@ -126,7 +139,11 @@ def create_fc_crashing_model(Ns, weights, biases, p_fail, KLips = 1, func = 'sig
       elif reg_type == 'l1':
           regularizer = l1(reg_coeff)
       elif reg_type == 'balanced':
-          regularizer = Balanced(reg_coeff)
+          # only doing it for first layer (where the crashes are!)
+          if i == 1:
+              regularizer = Balanced(reg_coeff)
+          else:
+              regularizer = lambda w : 0
       elif reg_type == None:
           regularizer = lambda w : 0
       else:
