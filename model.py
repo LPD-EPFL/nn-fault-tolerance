@@ -34,6 +34,35 @@ from numbers import Number
 from helpers import *
 from keras import Model, Input
 
+class Continuous(keras.regularizers.Regularizer):
+    """ Regularizer penalizing for weights being too different for neurons. Specifically, 
+        computes 1/n_l^2 \sum \sum_{ij} |W_{ij}-W_{i+1,j}| """
+
+    def __init__(self, beta = 1e-2):
+        """ Initialize (just save parameters) """
+        self.beta = beta
+
+    def __call__(self, x):
+        """ Regularize x """
+        # transposed weights n_{l-1} x n_l
+        W_T = x
+
+        # non-transposed weight matrix n_l x n_{l-1}
+        W = tf.transpose(W_T)
+
+        # out shape
+        n_l = W.shape[0].value
+
+        # resulting regularizer
+        reg = tf.reduce_sum(tf.abs(W[1:,] - W[:-1,:])) / n_l ** 2
+
+        # result = beta * reg
+        return self.beta * reg
+        
+    def get_config(self):
+        """ Get parameters """
+        return {'beta': self.beta}
+
 class Balanced(keras.regularizers.Regularizer):
     """Regularizer for (wmax/wmin)^2 for W_i = \sum\limits_j |W_ij|, see main paper, Eq. 1
     # Arguments
@@ -107,7 +136,7 @@ def create_fc_crashing_model(Ns, weights, biases, p_fail, KLips = 1, func = 'sig
   assert_equal(len(Ns), len(weights) + 1, "Shape array length", "Weights array length + 1")
   assert_equal(len(biases), len(weights), "Biases array length", "Weights array length")
   assert func in ['relu', 'sigmoid'], "Activation %s must be either relu or sigmoid" % str(func)
-  assert reg_type in [None, 'l1', 'l2', 'balanced'], "Regularization %s must be either l1, l2 or None" % str(reg_type)
+  assert reg_type in [None, 'l1', 'l2', 'balanced', 'continuous'], "Regularization %s must be either l1, l2 or None" % str(reg_type)
   assert isinstance(KLips, Number), "KLips %s must be a number" % str(KLips)
   assert isinstance(reg_coeff, Number), "reg_coeff %s must be a number" % str(reg_coeff)
 
@@ -142,6 +171,12 @@ def create_fc_crashing_model(Ns, weights, biases, p_fail, KLips = 1, func = 'sig
           # only doing it for first layer (where the crashes are!)
           if i == 1:
               regularizer = Balanced(reg_coeff)
+          else:
+              regularizer = lambda w : 0
+      elif reg_type == 'continuous':
+          # only doing it for first layer (where the crashes are!)
+          if i == 1:
+              regularizer = Continuous(reg_coeff)
           else:
               regularizer = lambda w : 0
       elif reg_type == None:
