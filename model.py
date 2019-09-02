@@ -30,17 +30,34 @@ from keras.layers import Dense
 from keras.layers.core import Lambda
 from keras.initializers import Constant
 from keras.regularizers import l1, l2
+from keras.constraints import max_norm
 from numbers import Number
 from helpers import *
 from keras import Model, Input
+import scipy.stats as st
+
+def gkern(kernlen=20, nsig=3):
+    """Returns a 2D Gaussian kernel."""
+    # https://stackoverflow.com/questions/29731726/how-to-calculate-a-gaussian-kernel-matrix-efficiently-in-numpy
+
+    x = np.linspace(-nsig, nsig, kernlen+1)
+    kern1d = np.diff(st.norm.cdf(x))
+
+#    kern1d = kern1d / np.sum(kern1d)
+    
+    # difference kernel
+    kern1d = kern1d - kern1d.sum() / kernlen
+
+    return kern1d
 
 class Continuous(keras.regularizers.Regularizer):
     """ Regularizer penalizing for weights being too different for neurons. Specifically, 
         computes \sum \sum_{ij} |W_{ij}-W_{i+1,j}| """
 
-    def __init__(self, beta = 1e-2):
+    def __init__(self, beta = 1):
         """ Initialize (just save parameters) """
         self.beta = beta
+
 
     def __call__(self, x):
         """ Regularize x """
@@ -59,10 +76,22 @@ class Continuous(keras.regularizers.Regularizer):
         n_l = W.shape[0].value
 
         # resulting regularizer. n_l not required!
-        reg = tf.reduce_sum(tf.abs(W[1:,:] - W[:-1,:]))
+#        reg = tf.reduce_sum(tf.abs(W[1:,:] - W[:-1,:]), axis = 1)
+
+        kernels = [gkern(kernlen = t) for t in [3, 5, 7] + [n_l // 10, n_l // 20]] + [[-1,1]]
+
+        W_filter = tf.reshape(W_T, (W.shape[1], 1, W.shape[0]))
+        reg = 0
+        for kernel in kernels:
+          filt = tf.reshape(tf.constant(kernel, dtype = tf.float32), (-1,1,1))
+          conv = tf.nn.convolution(W_filter, filt, padding = 'SAME',
+                      data_format = 'NCW')
+          reg += tf.reduce_sum(tf.abs(conv))
+
+#        reg2 = (tf.norm(W, ord = 1) - n_l) ** 2
 
         # result = beta * reg
-        return self.beta * reg
+        return self.beta * reg / len(kernels)# + 0.00001 * reg2
         
     def get_config(self):
         """ Get parameters """
@@ -133,7 +162,7 @@ def create_fc_crashing_model(Ns, weights, biases, p_fail, KLips = 1, func = 'sig
 
   # default optimizer
   if not optimizer:
-    optimizer = keras.optimizers.Adadelta()
+    optimizer = keras.optimizers.Adam()
   
   # input sanity check
   assert isinstance(Ns, list), "Ns must be a list"
@@ -203,7 +232,7 @@ def create_fc_crashing_model(Ns, weights, biases, p_fail, KLips = 1, func = 'sig
 
       # adding a Dense layer
       model.add(Dense(N_current, input_shape = (N_prev, ), kernel_initializer = Constant(w.T),
-          activation = activation, bias_initializer = Constant(b), kernel_regularizer = regularizer, bias_regularizer = regularizer_bias))
+          activation = activation, bias_initializer = Constant(b), kernel_regularizer = regularizer, bias_constraint = max_norm(0.) if (i == 1) else None))
 
     # adding dropout if needed
     if p > 0:
