@@ -36,7 +36,7 @@ from keras import Model, Input
 
 class Continuous(keras.regularizers.Regularizer):
     """ Regularizer penalizing for weights being too different for neurons. Specifically, 
-        computes 1/n_l^2 \sum \sum_{ij} |W_{ij}-W_{i+1,j}| """
+        computes \sum \sum_{ij} |W_{ij}-W_{i+1,j}| """
 
     def __init__(self, beta = 1e-2):
         """ Initialize (just save parameters) """
@@ -44,17 +44,22 @@ class Continuous(keras.regularizers.Regularizer):
 
     def __call__(self, x):
         """ Regularize x """
+
         # transposed weights n_{l-1} x n_l
         W_T = x
 
         # non-transposed weight matrix n_l x n_{l-1}
         W = tf.transpose(W_T)
 
+        # vector -> making a matrix n_l:1
+        if len(W.shape) == 1:
+            W = tf.reshape(W, (-1, 1))
+
         # out shape
         n_l = W.shape[0].value
 
-        # resulting regularizer
-        reg = tf.reduce_sum(tf.abs(W[1:,] - W[:-1,:])) / n_l ** 2
+        # resulting regularizer. n_l not required!
+        reg = tf.reduce_sum(tf.abs(W[1:,:] - W[:-1,:]))
 
         # result = beta * reg
         return self.beta * reg
@@ -163,6 +168,7 @@ def create_fc_crashing_model(Ns, weights, biases, p_fail, KLips = 1, func = 'sig
     # adding a dense layer if have previous shape (otherwise it's input)
     if not is_input:
       # deciding the type of regularizer
+      regularizer_bias = None
       if reg_type == 'l2':
           regularizer = l2(reg_coeff)
       elif reg_type == 'l1':
@@ -177,6 +183,8 @@ def create_fc_crashing_model(Ns, weights, biases, p_fail, KLips = 1, func = 'sig
           # only doing it for first layer (where the crashes are!)
           if i == 1:
               regularizer = Continuous(reg_coeff)
+              # also doing for biases to make continuous activations
+              regularizer_bias = regularizer
           else:
               regularizer = lambda w : 0
       elif reg_type == None:
@@ -195,7 +203,7 @@ def create_fc_crashing_model(Ns, weights, biases, p_fail, KLips = 1, func = 'sig
 
       # adding a Dense layer
       model.add(Dense(N_current, input_shape = (N_prev, ), kernel_initializer = Constant(w.T),
-          activation = activation, bias_initializer = Constant(b), kernel_regularizer = regularizer))
+          activation = activation, bias_initializer = Constant(b), kernel_regularizer = regularizer, bias_regularizer = regularizer_bias))
 
     # adding dropout if needed
     if p > 0:
