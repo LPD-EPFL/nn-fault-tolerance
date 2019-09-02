@@ -83,6 +83,13 @@ class TrainExperiment(Experiment):
       plt.legend()
       plt.savefig('training_' + name + '.png')
       plt.show()
+
+      target = 'loss'
+      plt.plot(history.history['val_' + target], label = 'val_' + target)
+      plt.plot(history.history[target], label = target)
+      plt.yscale('log')
+      plt.legend()
+      plt.show()
     
     # obtaining trained weights and biases
     W = model.get_weights()[0::2]
