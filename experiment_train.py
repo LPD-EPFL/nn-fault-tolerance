@@ -63,6 +63,9 @@ class TrainExperiment(Experiment):
     # fitting the model on the train data
     history = model.fit(x_train, y_train, verbose = do_print_, batch_size = batch_size, epochs = epochs, validation_data = (x_test, y_test))
 
+    # saving the training history
+    self.history = history
+
     # plotting the loss
     if do_print and epochs > 0:
       plt.figure()
