@@ -35,31 +35,19 @@ from numbers import Number
 from helpers import *
 from keras import Model, Input
 import scipy.stats as st
-
-def gkern(kernlen=20, nsig=3):
-    """Returns a 2D Gaussian kernel."""
-    # https://stackoverflow.com/questions/29731726/how-to-calculate-a-gaussian-kernel-matrix-efficiently-in-numpy
-
-    x = np.linspace(-nsig, nsig, kernlen+1)
-    kern1d = np.diff(st.norm.cdf(x))
-
-#    kern1d = kern1d / np.sum(kern1d)
-    
-    # difference kernel
-    kern1d = kern1d - kern1d.sum() / kernlen
-
-    return kern1d
+from continuity import smoothness_scale_free
 
 class Continuous(keras.regularizers.Regularizer):
     """ Regularizer penalizing for weights being too different for neurons. Specifically, 
         computes \sum \sum_{ij} |W_{ij}-W_{i+1,j}| """
 
-    def __init__(self, beta = 1):
+    def __init__(self, derivative = 0.1, smoothness = 0.1):
         """ Initialize (just save parameters) """
-        self.beta = beta
+        self.derivative = derivative
+        self.smoothness = smoothness
 
 
-    def __call__(self, x):
+    def __call__(self, x, return_dict = False):
         """ Regularize x """
 
         # transposed weights n_{l-1} x n_l
@@ -68,34 +56,18 @@ class Continuous(keras.regularizers.Regularizer):
         # non-transposed weight matrix n_l x n_{l-1}
         W = tf.transpose(W_T)
 
-        # vector -> making a matrix n_l:1
+        # vector -> making a matrix n_l:1 (1 input neuron)
         if len(W.shape) == 1:
             W = tf.reshape(W, (-1, 1))
 
-        # out shape
-        n_l = W.shape[0].value
-
-        # resulting regularizer. n_l not required!
-#        reg = tf.reduce_sum(tf.abs(W[1:,:] - W[:-1,:]), axis = 1)
-
-        kernels = [gkern(kernlen = t) for t in [3, 5, 7] + [n_l // 10, n_l // 20]] + [[-1,1]]
-
-        W_filter = tf.reshape(W_T, (W.shape[1], 1, W.shape[0]))
-        reg = 0
-        for kernel in kernels:
-          filt = tf.reshape(tf.constant(kernel, dtype = tf.float32), (-1,1,1))
-          conv = tf.nn.convolution(W_filter, filt, padding = 'SAME',
-                      data_format = 'NCW')
-          reg += tf.reduce_sum(tf.abs(conv))
-
-#        reg2 = (tf.norm(W, ord = 1) - n_l) ** 2
-
-        # result = beta * reg
-        return self.beta * reg / len(kernels)# + 0.00001 * reg2
+        # calling the worker function
+        sm = smoothness_scale_free(W)
+        if return_dict: return sm
+        return self.derivative * sm['derivative'] + self.smoothness * sm['smoothness']
         
     def get_config(self):
         """ Get parameters """
-        return {'beta': self.beta}
+        return {'derivative': self.derivative, 'smoothness': self.smoothness}
 
 class Balanced(keras.regularizers.Regularizer):
     """Regularizer for (wmax/wmin)^2 for W_i = \sum\limits_j |W_ij|, see main paper, Eq. 1
@@ -172,7 +144,7 @@ def create_fc_crashing_model(Ns, weights, biases, p_fail, KLips = 1, func = 'sig
   assert func in ['relu', 'sigmoid'], "Activation %s must be either relu or sigmoid" % str(func)
   assert reg_type in [None, 'l1', 'l2', 'balanced', 'continuous'], "Regularization %s must be either l1, l2 or None" % str(reg_type)
   assert isinstance(KLips, Number), "KLips %s must be a number" % str(KLips)
-  assert isinstance(reg_coeff, Number), "reg_coeff %s must be a number" % str(reg_coeff)
+  assert isinstance(reg_coeff, Number) or isinstance(reg_coeff, list), "reg_coeff %s must be a number" % str(reg_coeff)
 
   # creating model
   model = Sequential()
@@ -198,6 +170,7 @@ def create_fc_crashing_model(Ns, weights, biases, p_fail, KLips = 1, func = 'sig
     if not is_input:
       # deciding the type of regularizer
       regularizer_bias = None
+      regularizer = lambda w: 0
       if reg_type == 'l2':
           regularizer = l2(reg_coeff)
       elif reg_type == 'l1':
@@ -206,12 +179,11 @@ def create_fc_crashing_model(Ns, weights, biases, p_fail, KLips = 1, func = 'sig
           # only doing it for first layer (where the crashes are!)
           if i == 1:
               regularizer = Balanced(reg_coeff)
-          else:
-              regularizer = lambda w : 0
       elif reg_type == 'continuous':
-          regularizer = Continuous(reg_coeff)
-          # also doing for biases to make continuous activations
-          regularizer_bias = regularizer
+          if not is_output: # not regularizing the last layer (since it's output!)
+              regularizer = Continuous(derivative = reg_coeff[0], smoothness = reg_coeff[1])
+              # also doing for biases to make continuous activations
+              regularizer_bias = regularizer
       elif reg_type == None:
           regularizer = lambda w : 0
       else:
