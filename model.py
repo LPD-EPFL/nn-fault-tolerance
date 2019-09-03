@@ -209,13 +209,9 @@ def create_fc_crashing_model(Ns, weights, biases, p_fail, KLips = 1, func = 'sig
           else:
               regularizer = lambda w : 0
       elif reg_type == 'continuous':
-          # only doing it for first layer (where the crashes are!)
-          if i == 1:
-              regularizer = Continuous(reg_coeff)
-              # also doing for biases to make continuous activations
-              regularizer_bias = regularizer
-          else:
-              regularizer = lambda w : 0
+          regularizer = Continuous(reg_coeff)
+          # also doing for biases to make continuous activations
+          regularizer_bias = regularizer
       elif reg_type == None:
           regularizer = lambda w : 0
       else:
@@ -232,7 +228,7 @@ def create_fc_crashing_model(Ns, weights, biases, p_fail, KLips = 1, func = 'sig
 
       # adding a Dense layer
       model.add(Dense(N_current, input_shape = (N_prev, ), kernel_initializer = Constant(w.T),
-          activation = activation, bias_initializer = Constant(b), kernel_regularizer = regularizer, bias_constraint = max_norm(0.) if (i == 1) else None))
+          activation = activation, bias_initializer = Constant(b), kernel_regularizer = regularizer, bias_regularizer = regularizer_bias))#bias_constraint = max_norm(0.) if (i == 1) else None))
 
     # adding dropout if needed
     if p > 0:
