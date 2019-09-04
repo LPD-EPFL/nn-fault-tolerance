@@ -115,3 +115,109 @@ def line_1_bias(x, C, coeff = -1):
 def get_arr(key, results):
     """ Get results for a key """
     return [[x[key] for x in y] for y in results]
+
+def get_activation_profile(exp, layer = 0, input_idx = 0, plot = True):
+    """ Get a (hopefully) smooth activation profile """
+
+    # obtaining the model
+    m = exp.model_correct
+
+    # obtaining the tf session
+    sess = get_session()
+
+    #print(exp.history.history)
+
+    # some input
+    x = exp.x_train[input_idx:input_idx + 1]
+    #x = np.random.randn(1, *exp.x_train[0].shape)
+
+    # obtaining the activation profile
+    out1 = sess.run(m.layers[layer].output, feed_dict = {m.input: x})
+
+    if plot:
+        # plotting the activation profile
+        plt.figure(figsize=(16, 3))
+        plt.plot(out1[0])
+        plt.ylabel('$y_i$')
+        plt.xlabel('$i_%d=1..n_%d$' % (layer + 1, layer + 1))
+        plt.ylim((0,1))
+        plt.show()
+
+    # showing the regularization output
+    #print("int [W'_{t_1}(t_1,t_0)]=%.2f" % sess.run(Continuous()(exp.W[0].T)))
+
+    return out1[0]
+
+def show_W_profile(exp, layer = 0):
+    """ Get a W[1] """
+    
+    sess = get_session()
+    
+    def process_layer(layer):
+        W_T = exp.W[layer].T
+        profile = get_activation_profile(exp, layer = layer, plot = True)
+        cont_tensor = Continuous()(W_T, return_dict = True) 
+        #print(W_T.shape, cont_tensor)
+        print("IntDer, Conv", sess.run(cont_tensor))
+        return profile
+    
+    results = {}
+
+    for layer in range(len(exp.W)):
+        print("Layer", layer)
+        results['act_%d' % layer] = process_layer(layer)
+
+    # true answer
+    print('True ans #0', np.argmax(exp.y_train[0]))
+
+    return results
+
+def show_neurons_1(exp):
+    # showing neurons at first layer weight patterns
+    # we see that neurons are grouped!
+    neurons_1 = [int(t) for t in np.linspace(0, exp.W[0].shape[0] - 1, 16)]
+
+    fig, axs = plt.subplots(1, len(neurons_1), figsize=(16, 3), sharex='row', sharey = 'row')
+
+    for i, n in enumerate(neurons_1):
+        axs[i].imshow(exp.W[0][n,:].reshape(28, 28), cmap = 'gray')
+    plt.show()
+
+    return {}
+            
+def W_inf_norm(exp):
+    """ Returns Inf-norms for weight matrices, to show continuous
+    limit (there they must stay ~constant and not blow up/decay) """
+    
+    # list of matrices
+    Ws = exp.W
+    
+    # norms for everything
+    Wnorms = {'W_%d' % i: np.linalg.norm(W.T, ord = 1) for i, W in enumerate(Ws)}
+    
+    Wnorms['W_prod'] = np.prod([x for x in Wnorms.values()])
+    
+    return Wnorms
+
+def dataset_metrics(exp):
+    """ Experiment -> dict of metrics (acc/loss) """
+    result = {'val_acc': exp.history.history['val_categorical_accuracy'][-1],
+     'train_acc':  exp.history.history['categorical_accuracy'][-1],
+     'val_loss': exp.history.history['val_loss'][-1],
+     'train_loss': exp.history.history['loss'][-1]}
+    print(result)
+    return result
+
+def get_results(Ns, repetitions, parameters, to_run):
+    """ Run get_exp for each of Ns, with repeat, with parameters, measure each from to_run, return 2D array of dicts """
+    results = []
+    for N in tqdm(Ns):
+        # results for one N, many repetitions
+        buffer = []
+        for rep in range(repetitions):
+            exp = experiment_for_N(N, parameters)
+            buffer.append(get_metrics(exp, to_run))
+            tf.reset_default_graph()
+            K.clear_session()
+        results.append(buffer)
+    return results
