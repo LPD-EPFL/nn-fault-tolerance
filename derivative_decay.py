@@ -2,6 +2,7 @@
 
 from experiment_train import *
 from experiment_datasets import *
+from scipy.optimize import curve_fit
 
 def get_exp(epochs = 15, N = [200, 50], reg_coeff = 0.0005, reg_type = 'continuous', do_print = 'plot'):
     """ Train and return the result """
@@ -221,3 +222,57 @@ def get_results(Ns, repetitions, parameters, to_run):
             K.clear_session()
         results.append(buffer)
     return results
+
+def plot_results(Ns, results):
+    # slopes will be plotted in log scale and with estimated decay rate
+    slopes = {'D': -1, 'H_all': -2, 'H_diag': -2}
+
+    # keys to ignore (activations are vectors)
+    ignore_keys = ['act_']
+
+    # key being processed
+    for key in results[0][0].keys():
+
+        # ignoring keys
+        if any([key.startswith(k) for k in ignore_keys]):
+            continue
+
+        # obtaining the data
+        xs = Ns
+        ys = get_arr(key, results)
+
+        # one of metrics for which we need a slope -> log scale + fitting a curve
+        if key in slopes:
+            xs = np.log(xs)
+            ys = np.log(ys)
+
+        # mean/std
+        ys_mean = np.mean(ys, axis = 1)
+        ys_std = np.std(ys, axis = 1)
+
+        # plotting mean/std
+        plt.figure()
+        plt.fill_between(xs, ys_mean - ys_std, ys_mean + ys_std, alpha = 0.3, color = 'green')
+        plt.scatter(xs, ys_mean, color = 'green')
+
+        # one of metrics for which we need a slope -> log scale + fitting a curve
+        if key in slopes:
+            # get desired slope (-1/-2)
+            slope = slopes[key]
+
+            # fitting the curve
+#            fcn = partial(line_1_bias, coeff = slope)
+            fcn = line_1_bias
+
+            C = curve_fit(fcn, xs, ys_mean)[0]
+
+            plt.plot(xs, fcn(xs, *C), color = 'red')
+
+            plt.xlabel('log(n)')
+            plt.ylabel('log(%s) slope=%.2f' % (key, C[1]))
+        else:
+            plt.xlabel('n')
+            plt.ylabel('%s' % key)
+
+        plt.title('%s' % (key))
+        plt.show()

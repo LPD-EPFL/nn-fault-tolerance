@@ -3,6 +3,7 @@ import numpy as np
 import sys
 from functools import partial
 import pandas as pd
+import pickle
 
 # calculate first norm
 norm1 = partial(np.linalg.norm, ord = 1)
@@ -141,3 +142,11 @@ def print_shape(r, name):
   """ Print shapes of each element in a dictionary r """
   print('=== Shapes of %s ===' % str(name))
   print(pd.DataFrame([[key, np.array(value).shape] for key, value in r.items()], columns = ['name', 'shape']))
+
+def pickle_w(var, filename):
+    """ Write pickle to file, filename w/o extension, using current dir """
+    pickle.dump(var, open("%s.pkl" % filename, "wb"))
+
+def pickle_r(filename):
+    """ Read from pickle file, filename w/o extension, using current dir """
+    return pickle.load(open("%s.pkl" % filename, "rb"))
