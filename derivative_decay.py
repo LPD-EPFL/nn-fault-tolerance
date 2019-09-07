@@ -223,7 +223,7 @@ def get_results(Ns, repetitions, parameters, to_run):
         results.append(buffer)
     return results
 
-def plot_results(Ns, results):
+def plot_results(Ns, results, name = 'decay_some'):
     # slopes will be plotted in log scale and with estimated decay rate
     slopes = {'D': -1, 'H_all': -2, 'H_diag': -2}
 
@@ -275,4 +275,5 @@ def plot_results(Ns, results):
             plt.ylabel('%s' % key)
 
         plt.title('%s' % (key))
+        plt.savefig('figures/%s_%s.pdf' % (name, key), bbox_inches = 'tight')
         plt.show()
