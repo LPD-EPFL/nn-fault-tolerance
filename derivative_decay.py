@@ -4,7 +4,7 @@ from experiment_train import *
 from experiment_datasets import *
 from scipy.optimize import curve_fit
 
-def get_exp(epochs = 15, N = [200, 50], reg_coeff = 0.0005, reg_type = 'continuous', do_print = 'plot', experiment = MNISTExperiment):
+def get_exp(epochs = 15, N = [200, 50], reg_coeff = 0.0005, reg_type = 'continuous', do_print = 'plot', experiment = MNISTExperiment, p = 0.0, **kwargs):
     """ Train and return the result """
     def get_p_arr(p):
         """ p array with failure on the first layer """
@@ -17,11 +17,11 @@ def get_exp(epochs = 15, N = [200, 50], reg_coeff = 0.0005, reg_type = 'continuo
     activation = 'sigmoid'
 
     # training the network
-    exp = experiment(N = N, p_inference = get_p_arr(0), p_train = get_p_arr(0),
+    exp = experiment(N = N, p_inference = get_p_arr(p), p_train = get_p_arr(0),
                           KLips = KLips, epochs = epochs,
                           activation = activation, reg_type = reg_type,
                           reg_coeff = reg_coeff, do_print = do_print,
-                          name = 'experiment_weights', seed = None, batch_size = 1000)
+                          name = 'experiment_weights', seed = None, batch_size = 1000, **kwargs)
     
     # returning the weights in the middle
     return exp
@@ -225,7 +225,7 @@ def get_results(Ns, repetitions, parameters, to_run):
 
 def plot_results(Ns, results, name = 'decay_some'):
     # slopes will be plotted in log scale and with estimated decay rate
-    slopes = {'D': -1, 'H_all': -2, 'H_diag': -2}
+    slopes = {'D': -1, 'H_all': -2, 'H_diag': -2, 'var_delta': -1}
 
     # keys to ignore (activations are vectors)
     ignore_keys = ['act_']

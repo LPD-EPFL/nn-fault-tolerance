@@ -98,7 +98,11 @@ class MNISTExperimentRegularized(TrainExperiment):
     
         # fitting the model on the train data
         history = model.fit(x_train, y_train, verbose = do_print_, batch_size = batch_size, epochs = epochs, validation_data = (x_test, y_test))
-    
+   
+        # saving the training history
+        self.history = history
+
+
         # plotting the loss
         if do_print and epochs > 0:
     
@@ -125,7 +129,12 @@ class MNISTExperimentRegularized(TrainExperiment):
         W = model.get_weights()[0::2]
         W = [w.T for w in W]
         B = model.get_weights()[1::2]
-    
+   
+        # adding output tensor and loss tensor
+        self.output_tensor = tf.placeholder(tf.float32, shape = (None, output_shape))
+        self.loss = keras.losses.mean_squared_error(self.output_tensor, self.model_correct.output)
+
+
         if bound_cache:
             # clearning bound cache
             delattr(self, bound_cache)
