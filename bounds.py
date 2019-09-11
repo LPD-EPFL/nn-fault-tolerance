@@ -120,6 +120,43 @@ def _get_bound_b3_loss(self, data, outputs, weights = None):
 
   return self.run_on_input_output(get_graph(), data, outputs)
 
+def fault_tolerance_taylor_1st_term(f_x, x, p, check_shape = True):
+    """ 
+    Input: f_x: tensor of shape (-1, N)
+    x: tensor on which f_x depends on
+    p: scalar, probability of failure
+    
+    Returns
+    mean: -df_x/dx * x * p
+    std: p (df_x/dx)^2 * x^2
+    
+    check_shape: explicitly do mean over axis 1
+    """
+    
+    # last dimension
+    N = f_x.shape[-1].value
+    
+    # resulting gradient w.r.t. first layer output
+    grad = []
+    grad_sq = []
+
+    # for all output dimensions
+    for output_dim in range(N):
+        # get derivative of output
+        out = f_x[:, output_dim]
+
+        # w.r.t. first layer output
+        # check_shape is True by default
+        if check_shape:
+            grad    += [tf.reduce_sum(          tf.multiply(tf.gradients([out], [x])[0], x), axis = 1)]
+            grad_sq += [tf.reduce_sum(tf.square(tf.multiply(tf.gradients([out], [x])[0], x)), axis = 1)]
+        else:
+            grad    += [tf.reduce_sum(          tf.multiply(tf.gradients([out], [x])[0], x))]
+            grad_sq += [tf.reduce_sum(tf.square(tf.multiply(tf.gradients([out], [x])[0], x)))]
+
+    # compute the result
+    return {'mean': tf.transpose(tf.multiply(-p, grad)), 'std': tf.transpose(tf.sqrt(tf.multiply(p, grad_sq)))}
+
 @register_method
 def get_bound_b3(self, data):
   """ Exact error up to O(p^2x_i^2), assumes infinite width and small p """
@@ -128,6 +165,7 @@ def get_bound_b3(self, data):
 
   @cache_graph(self)
   def get_graph():
+#    return fault_tolerance_taylor_1st_term(self.model_correct.output, self.model_correct.layers[0].output, self.p_inference[1], check_shape = (not hasattr(self, 'check_shape')) or self.check_shape)
     # resulting gradient w.r.t. first layer output
     grad = []
     grad_sq = []
@@ -152,6 +190,7 @@ def get_bound_b3(self, data):
     # compute the result
     p = self.p_inference[1]
     return {'mean': tf.transpose(tf.multiply(-p, grad)), 'std': tf.transpose(tf.sqrt(tf.multiply(p, grad_sq)))}
+
 
   return self.run_on_input(get_graph(), data)
 
