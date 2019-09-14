@@ -7,7 +7,7 @@ from tqdm import tqdm
 import sys
 
 class TrainExperiment(Experiment):
-  def __init__(self, x_train, y_train, x_test, y_test, N, p_inference = None, p_train = None, task = 'classification', KLips = 1, epochs = 20, activation = 'sigmoid', reg_type = None, reg_coeff = 0.01, do_print = False, name = 'exp', seed = 0, batch_size = 10000):
+  def __init__(self, x_train, y_train, x_test, y_test, N, p_inference = None, p_train = None, task = 'classification', KLips = 1, epochs = 20, activation = 'sigmoid', reg_type = None, reg_coeff = 0.01, do_print = False, name = 'exp', seed = 0, batch_size = 10000, reg_spec = {}):
     """ Get a trained with MSE loss network with configuration (N, P, activation) and reg_type(reg_coeff) with name. The last layer is linear
         N: array with shapes [hidden1, hidden2, ..., hiddenLast]. Input and output shapes are determined automatically
         p_inference: array with [p_input, p_h1, ..., p_hlast, p_output]: inference failure probabilities
@@ -21,6 +21,15 @@ class TrainExperiment(Experiment):
     # fixing Ptrain
     if p_train == None:
       p_train = [0] * (len(N) + 2)
+
+    assert reg_spec == {} or reg_type is None, "Cannot specify both reg_type (one regularizer) and reg_spec (multiple regularizers)"
+
+    # single regularizer case
+    if reg_spec == {} and reg_type is not None:
+        reg_spec = {reg_type: reg_coeff}
+
+    # saving regularization parameters
+    self.reg_spec = reg_spec
 
     # obtaining input/output shape
     input_shape = x_train[0].size
@@ -58,7 +67,7 @@ class TrainExperiment(Experiment):
     do_print_ = True if do_print == True else False
 
     # creating a model
-    model = create_fc_crashing_model(N, W, B, p_train, KLips = KLips, func = activation, reg_type = reg_type, reg_coeff = reg_coeff, do_print = do_print_)
+    model = create_fc_crashing_model(N, W, B, p_train, KLips = KLips, func = activation, reg_spec = reg_spec, do_print = do_print_)
 
     # fitting the model on the train data
     history = model.fit(x_train, y_train, verbose = do_print_, batch_size = batch_size, epochs = epochs, validation_data = (x_test, y_test))
@@ -68,7 +77,15 @@ class TrainExperiment(Experiment):
 
     # plotting the loss
     if do_print and epochs > 0:
-      plt.figure()
+      def plot_target(target):
+        """ Plot for loss/accuracy """
+        # plotting
+        plt.figure()
+        plt.plot(history.history['val_' + target], label = 'val_' + target)
+        plt.plot(history.history[target], label = target)
+        plt.legend()
+        plt.savefig('training_' + target + '_' + name + '.png')
+        plt.show()
 
       # determining what to plot (target)
       if task == 'classification':
@@ -77,19 +94,11 @@ class TrainExperiment(Experiment):
         target = 'loss'
       else: raise NotImplementedError("Plotting for this task is not supported")
 
-      # plotting
-      plt.plot(history.history['val_' + target], label = 'val_' + target)
-      plt.plot(history.history[target], label = target)
-      plt.legend()
-      plt.savefig('training_' + name + '.png')
-      plt.show()
+      # plotting loss always
+      plot_target("loss")
 
-      target = 'loss'
-      plt.plot(history.history['val_' + target], label = 'val_' + target)
-      plt.plot(history.history[target], label = target)
-      plt.yscale('log')
-      plt.legend()
-      plt.show()
+      # if have something else, plotting it too
+      if target != 'loss': plot_target(target)
     
     # obtaining trained weights and biases
     W = model.get_weights()[0::2]

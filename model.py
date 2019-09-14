@@ -24,6 +24,7 @@ init_tf_keras()
 # standard imports
 import numpy as np
 import keras
+from bounds import fault_tolerance_taylor_1st_term
 from keras import backend as K
 from keras.models import Sequential
 from keras.layers import Dense
@@ -120,7 +121,63 @@ def get_custom_activation(KLips, func):
     else: raise NotImplementedError("Activation function %s is not supported" % str(func))
   return custom_activation
 
-def create_fc_crashing_model(Ns, weights, biases, p_fail, KLips = 1, func = 'sigmoid', reg_type = None, reg_coeff = 0, do_print = True, loss = keras.losses.mean_squared_error, optimizer = None, do_compile = True):
+def get_regularizer_total(reg_spec, model, layer):
+    """ Get regularizer for a model (vardelta) """
+
+    # nothing if no vardelta
+    if 'vardelta' not in reg_spec: return 0
+
+    z = model.layers[layer].output
+    out = model.output
+    p = float(reg_spec['vardelta']['p'])
+    lambda_ = float(reg_spec['vardelta']['lambda'])
+    #print("VarDelta reg p=%.5f lambda=%.5f" % (p, lambda_))
+    T1 = fault_tolerance_taylor_1st_term(out, z, p)['std'] ** 2
+    return tf.reduce_mean(T1) * lambda_
+
+def get_regularizer_wb(reg_spec, is_input, is_output, layer):
+    """ Obtain a regularizer from description """
+
+    def reg_one(reg_type, reg_coeff):
+        """ Reg type, reg coeff -> function """
+        regularizer_w = lambda w : 0
+        regularizer_b = lambda w : 0
+        if reg_type == 'l2':
+            regularizer_w = l2(reg_coeff)
+        elif reg_type == 'l1':
+            regularizer_w = l1(reg_coeff)
+        elif reg_type == 'balanced':
+            # only doing it for first layer (where the crashes are!)
+            if layer == 1:
+                regularizer_w = Balanced(reg_coeff)
+        elif reg_type == 'continuous':
+             if not is_output: # not regularizing the last layer (since it's output!)
+                regularizer_w = Continuous(derivative = reg_coeff['derivative'], smoothness = reg_coeff['smoothness'])
+                # also doing for biases to make continuous activations
+                regularizer_b = regularizer_w
+        elif reg_type != 'vardelta':
+            print("Ignoring unknown weight/bias regularizer %s" % reg_type)
+        return regularizer_w, regularizer_b
+
+    # going over all regularizers
+    regularizer_w = []
+    regularizer_b = []
+
+    # obtaining regularizers
+    for reg_type, reg_coeff in reg_spec.items():
+        reg_w, reg_b = reg_one(reg_type, reg_coeff)
+        regularizer_w.append(reg_w)
+        regularizer_b.append(reg_b)
+
+    # aggregating them
+    def aggregate_lst(lst):
+        """ Return a function x -> sum(f(x)) """
+        return lambda x : sum([item(x) for item in lst])
+
+    return aggregate_lst(regularizer_w), aggregate_lst(regularizer_b)
+
+
+def create_fc_crashing_model(Ns, weights, biases, p_fail, KLips = 1, func = 'sigmoid', reg_spec =  {}, do_print = True, loss = keras.losses.mean_squared_error, optimizer = None, do_compile = True):
   """ Create a simple network with given dropout prob, weights and Lipschitz coefficient for sigmoid
       Ns: array of shapes: [input, hidden1, hidden2, ..., output]
       weights: array with matrices. The shape must be [hidden1 x input, hidden2 x hidden1, ..., output x hiddenLast]
@@ -128,8 +185,7 @@ def create_fc_crashing_model(Ns, weights, biases, p_fail, KLips = 1, func = 'sig
       p_fail: array with p_fail for [input, hidden1, ..., output]. Must be the same size as Ns. Both for inference and training
       KLips: the Lipschitz coefficient
       func: The acivation function. Currently 'relu' and 'sigmoid' are supported. Note that the last layer is linear to agree with the When Neurons Fail article
-      reg_type: The regularization type 'l1' or 'l2'
-      reg_coeff: The regularization parameter
+      reg_spec: dictionary of regularizers
   """
 
   # default optimizer
@@ -142,9 +198,10 @@ def create_fc_crashing_model(Ns, weights, biases, p_fail, KLips = 1, func = 'sig
   assert_equal(len(Ns), len(weights) + 1, "Shape array length", "Weights array length + 1")
   assert_equal(len(biases), len(weights), "Biases array length", "Weights array length")
   assert func in ['relu', 'sigmoid'], "Activation %s must be either relu or sigmoid" % str(func)
-  assert reg_type in [None, 'l1', 'l2', 'balanced', 'continuous'], "Regularization %s must be either l1, l2 or None" % str(reg_type)
+#  assert reg_type in [None, 'l1', 'l2', 'balanced', 'continuous'], "Regularization %s must be either l1, l2 or None" % str(reg_type)
+  assert isinstance(reg_spec, dict), "Please supply a dictionary for regularizers"
   assert isinstance(KLips, Number), "KLips %s must be a number" % str(KLips)
-  assert isinstance(reg_coeff, Number) or isinstance(reg_coeff, list), "reg_coeff %s must be a number" % str(reg_coeff)
+#  assert isinstance(reg_coeff, Number) or isinstance(reg_coeff, list), "reg_coeff %s must be a number" % str(reg_coeff)
 
   # creating model
   model = Sequential()
@@ -169,25 +226,7 @@ def create_fc_crashing_model(Ns, weights, biases, p_fail, KLips = 1, func = 'sig
     # adding a dense layer if have previous shape (otherwise it's input)
     if not is_input:
       # deciding the type of regularizer
-      regularizer_bias = None
-      regularizer = lambda w: 0
-      if reg_type == 'l2':
-          regularizer = l2(reg_coeff)
-      elif reg_type == 'l1':
-          regularizer = l1(reg_coeff)
-      elif reg_type == 'balanced':
-          # only doing it for first layer (where the crashes are!)
-          if i == 1:
-              regularizer = Balanced(reg_coeff)
-      elif reg_type == 'continuous':
-          if not is_output: # not regularizing the last layer (since it's output!)
-              regularizer = Continuous(derivative = reg_coeff[0], smoothness = reg_coeff[1])
-              # also doing for biases to make continuous activations
-              regularizer_bias = regularizer
-      elif reg_type == None:
-          regularizer = lambda w : 0
-      else:
-          raise(NotImplementedError("Regularization type"))
+      regularizer_w, regularizer_b = get_regularizer_wb(reg_spec, is_input = is_input, is_output = is_output, layer = i)
 
       # deciding the activation function
       activation = 'linear' if is_output else get_custom_activation(KLips, func)
@@ -200,14 +239,18 @@ def create_fc_crashing_model(Ns, weights, biases, p_fail, KLips = 1, func = 'sig
 
       # adding a Dense layer
       model.add(Dense(N_current, input_shape = (N_prev, ), kernel_initializer = Constant(w.T),
-          activation = activation, bias_initializer = Constant(b), kernel_regularizer = regularizer, bias_regularizer = regularizer_bias))#bias_constraint = max_norm(0.) if (i == 1) else None))
+          activation = activation, bias_initializer = Constant(b), kernel_regularizer = regularizer_w, bias_regularizer = regularizer_b))
 
     # adding dropout if needed
     if p > 0:
       model.add(IndependentCrashes(p, input_shape = (N_current, )))
 
-  # parameters for compilation
-  parameters = {'loss': loss, 'optimizer': optimizer, 'metrics': [keras.metrics.categorical_accuracy, 'mean_squared_error', 'mean_absolute_error']}
+  # parameters for compilation, layer = 1 only (where the crashes are
+
+  # obtaining total regularizers and adding it
+  reg_loss = get_regularizer_total(reg_spec, model, layer = 1)
+  loss_reg_add = lambda y_true, y_pred: loss(y_true, y_pred) + reg_loss
+  parameters = {'loss': loss_reg_add, 'optimizer': optimizer, 'metrics': [keras.metrics.categorical_accuracy, 'mean_squared_error', 'mean_absolute_error']}
 
   # if compilation requested, doing it
   if do_compile:

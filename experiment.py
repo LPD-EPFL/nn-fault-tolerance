@@ -47,10 +47,10 @@ class Experiment():
     self.B = B
 
     # creating "crashing" model
-    self.model_crashing = create_fc_crashing_model(N, W, B, p_inference, KLips = KLips, func = activation, reg_type = None, reg_coeff = 0, do_print = do_print)
+    self.model_crashing = create_fc_crashing_model(N, W, B, p_inference, KLips = KLips, func = activation, reg_spec = {}, do_print = do_print)
 
     # creating correct model
-    self.model_correct  = create_fc_crashing_model(N, W, B, [0] * len(N), KLips = KLips, func = activation, reg_type = None, reg_coeff = 0, do_print = do_print)
+    self.model_correct  = create_fc_crashing_model(N, W, B, [0] * len(N), KLips = KLips, func = activation, reg_spec = {}, do_print = do_print)
 
     # saving N
     self.N = N
