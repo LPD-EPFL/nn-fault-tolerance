@@ -151,6 +151,8 @@ def get_regularizer_wb(reg_spec, is_input, is_output, layer):
             if layer == 1:
                 regularizer_w = Balanced(reg_coeff)
         elif reg_type == 'continuous':
+             if isinstance(reg_coeff, list):
+                reg_coeff = {'derivative': reg_coeff[0], 'smoothness': reg_coeff[1]}
              if not is_output: # not regularizing the last layer (since it's output!)
                 regularizer_w = Continuous(derivative = reg_coeff['derivative'], smoothness = reg_coeff['smoothness'])
                 # also doing for biases to make continuous activations

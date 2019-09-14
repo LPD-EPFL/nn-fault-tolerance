@@ -4,7 +4,7 @@ from experiment_train import *
 from experiment_datasets import *
 from scipy.optimize import curve_fit
 
-def get_exp(epochs = 15, N = [200, 50], reg_coeff = 0.0005, reg_type = 'continuous', do_print = 'plot', experiment = MNISTExperiment, p = 0.0, **kwargs):
+def get_exp(epochs = 15, N = [200, 50], do_print = 'plot', experiment = MNISTExperiment, p = 0.0, **kwargs):
     """ Train and return the result """
     def get_p_arr(p):
         """ p array with failure on the first layer """
@@ -19,8 +19,7 @@ def get_exp(epochs = 15, N = [200, 50], reg_coeff = 0.0005, reg_type = 'continuo
     # training the network
     exp = experiment(N = N, p_inference = get_p_arr(p), p_train = get_p_arr(0),
                           KLips = KLips, epochs = epochs,
-                          activation = activation, reg_type = reg_type,
-                          reg_coeff = reg_coeff, do_print = do_print,
+                          activation = activation, do_print = do_print,
                           name = 'experiment_weights', seed = None, batch_size = 1000, **kwargs)
     
     # returning the weights in the middle
