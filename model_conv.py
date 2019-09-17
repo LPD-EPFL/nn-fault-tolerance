@@ -3,7 +3,7 @@ import tensorflow as tf
 from vis.utils.utils import apply_modifications
 from keras.activations import softplus
 from keras.utils import CustomObjectScope
-from keras.layers import Activation, InputLayer
+from keras.layers import Activation, InputLayer, Flatten
 from keras.preprocessing import image
 import numpy as np
 from matplotlib import pyplot as plt
@@ -22,7 +22,7 @@ custom_fcn = {'identity': identity, 'softplus10': softplus10}
 
 def remove_activation(model, layer):
   """ For a given model, remove an activation """
-  print("Removing activation from layer %s" % str(model.layers[layer]))
+  print("Removing activation from layer %s" % str(layer))
 
   # obtaining the layer object
   layer = model.layers[layer]
@@ -44,12 +44,16 @@ def replace_relu_with_softplus(model, scaler = 1.0):
   print("Replacing ReLU to Softplus(%.2f)" % scaler)
 
   # replacing ReLU with SoftPlus10
+  replaced = []
+  activations = set()
   for i, layer in enumerate(model.layers):
     if hasattr(layer, 'activation'):
       if layer.activation.__name__ == 'relu':
-        print("Replacing activation %s on layer %d/%s with softplus" % (str(layer.activation.__name__), i, str(layer)))
+        activations.add(str(layer.activation.__name__))
+        replaced.append(i)
         layer.activation = softplus10
 
+  print("Replaced activations %s on layers %s with softplus" % (str(activations), str(replaced)))
   # applying modifications
   print('Applying modifications...')
   with CustomObjectScope(custom_fcn):
@@ -125,11 +129,33 @@ def merge_with_taken(model, x_without_first, rc0 = 10):
 
   return model_upscale
 
-def load_image(img_path, dimension = 224, axis = plt):
+def pool_max2avg(model):
+    """ Replacing maxpool with avgpool """
+
+    x = model.layers[0].output
+
+    replaced = []
+    for i, layer in enumerate(model.layers[1:]):
+        #print(dir(layer))
+        if isinstance(layer, keras.layers.pooling.MaxPooling2D):
+            config = layer.get_config()
+            config['name'] += "newpool"
+            L = keras.layers.pooling.AveragePooling2D(**config)
+            replaced.append(i)
+        else:
+            L = layer
+        #model1.add(L)
+        x = L(x)
+    model = Model(inputs = model.input, outputs = x)
+    print("Replaced maxpool to avgpool at layers %s" % str(replaced))
+    return model
+
+def load_image(img_path, dimension = 224, axis = plt, color = False):
   """ Load an image """
   img = image.load_img(img_path, target_size=(dimension, dimension))
   x = image.img_to_array(img)
-  x = x.mean(axis = 2)
+  if not color:
+    x = x.mean(axis = 2)
   axis.imshow(x, cmap = 'gray')
   x = np.expand_dims(x, axis=0)
   #x = preprocess_input(x)
@@ -137,7 +163,7 @@ def load_image(img_path, dimension = 224, axis = plt):
 
 def load_cat(dimension = 224):
   # getting picture of a cat
-  return load_image('cat.jpg', dimension)
+  return load_image('cat.jpg', dimension, color = True)
 
 def SliceLayer(to_keep):
   """ Keep only these components in the layer """
