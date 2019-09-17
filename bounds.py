@@ -96,41 +96,19 @@ def _get_bound_b3_loss(self, data, outputs, weights = None):
 
   @cache_graph(self)
   def get_graph():
-    # resulting gradient w.r.t. first layer output
-    grad = []
-    grad_sq = []
-
-    # list of layers
-    layers = self.model_correct.layers
-
-    # loss tensor
-    loss = self.loss
-
-    # w.r.t. first layer output
-    if (not hasattr(self, 'check_shape')) or self.check_shape:
-      grad    += [tf.reduce_sum(          tf.multiply(tf.gradients([loss], [weights])[0], weights), axis = 1)]
-      grad_sq += [tf.reduce_sum(tf.square(tf.multiply(tf.gradients([loss], [weights])[0], weights)), axis = 1)]
-    else:
-      grad    += [tf.reduce_sum(          tf.multiply(tf.gradients([loss], [weights])[0], weights))]
-      grad_sq += [tf.reduce_sum(tf.square(tf.multiply(tf.gradients([loss], [weights])[0], weights)))]
-
-    # compute the result
-    p = np.max(self.p_inference)
-    return {'mean': tf.transpose(tf.multiply(-p, grad)), 'std': tf.transpose(tf.sqrt(tf.multiply(p, grad_sq)))}
+    return fault_tolerance_taylor_1st_term(loss, weights, np.max(self.p_inference))
 
   return self.run_on_input_output(get_graph(), data, outputs)
 
-def fault_tolerance_taylor_1st_term(f_x, x, p, check_shape = True):
+def fault_tolerance_taylor_1st_term(f_x, x, p):
     """ 
     Input: f_x: tensor of shape (-1, N)
-    x: tensor on which f_x depends on
+    x: tensor on which f_x depends on, shape (nBatch, other)
     p: scalar, probability of failure
     
     Returns
     mean: -df_x/dx * x * p
     std: p (df_x/dx)^2 * x^2
-    
-    check_shape: explicitly do mean over axis 1
     """
     
     # last dimension
@@ -145,14 +123,12 @@ def fault_tolerance_taylor_1st_term(f_x, x, p, check_shape = True):
         # get derivative of output
         out = f_x[:, output_dim]
 
+        # all but batch dimension
+        non_input_dims = list(range(1, len(x.shape)))
+
         # w.r.t. first layer output
-        # check_shape is True by default
-        if check_shape:
-            grad    += [tf.reduce_sum(          tf.multiply(tf.gradients([out], [x])[0], x), axis = 1)]
-            grad_sq += [tf.reduce_sum(tf.square(tf.multiply(tf.gradients([out], [x])[0], x)), axis = 1)]
-        else:
-            grad    += [tf.reduce_sum(          tf.multiply(tf.gradients([out], [x])[0], x))]
-            grad_sq += [tf.reduce_sum(tf.square(tf.multiply(tf.gradients([out], [x])[0], x)))]
+        grad    += [tf.reduce_sum(          tf.multiply(tf.gradients([out], [x])[0], x), axis = non_input_dims)]
+        grad_sq += [tf.reduce_sum(tf.square(tf.multiply(tf.gradients([out], [x])[0], x)), axis = non_input_dims)]
 
     # compute the result
     return {'mean': tf.transpose(tf.multiply(-p, grad)), 'std': tf.transpose(tf.sqrt(tf.multiply(p, grad_sq)))}
@@ -165,32 +141,7 @@ def get_bound_b3(self, data):
 
   @cache_graph(self)
   def get_graph():
-#    return fault_tolerance_taylor_1st_term(self.model_correct.output, self.model_correct.layers[0].output, self.p_inference[1], check_shape = (not hasattr(self, 'check_shape')) or self.check_shape)
-    # resulting gradient w.r.t. first layer output
-    grad = []
-    grad_sq = []
-
-    # list of layers
-    layers = self.model_correct.layers
-
-    # for all output dimensions
-    for output_dim in range(self.N[-1]):
-      # get derivative of output
-      out = self.model_correct.output[:, output_dim]
-
-      # w.r.t. first layer output
-      # check_shape is True by default
-      if (not hasattr(self, 'check_shape')) or self.check_shape:
-        grad    += [tf.reduce_sum(          tf.multiply(tf.gradients([out], [layers[0].output])[0], layers[0].output), axis = 1)]
-        grad_sq += [tf.reduce_sum(tf.square(tf.multiply(tf.gradients([out], [layers[0].output])[0], layers[0].output)), axis = 1)]
-      else:
-        grad    += [tf.reduce_sum(          tf.multiply(tf.gradients([out], [layers[0].output])[0], layers[0].output))]
-        grad_sq += [tf.reduce_sum(tf.square(tf.multiply(tf.gradients([out], [layers[0].output])[0], layers[0].output)))]
-
-    # compute the result
-    p = self.p_inference[1]
-    return {'mean': tf.transpose(tf.multiply(-p, grad)), 'std': tf.transpose(tf.sqrt(tf.multiply(p, grad_sq)))}
-
+    return fault_tolerance_taylor_1st_term(self.model_correct.output, self.model_correct.layers[0].output, self.p_inference[1])
 
   return self.run_on_input(get_graph(), data)
 
