@@ -4,6 +4,7 @@ from vis.utils.utils import apply_modifications
 from keras.activations import softplus
 from keras.utils import CustomObjectScope
 from keras.layers import Activation, InputLayer, Flatten
+from keras.layers.pooling import AveragePooling2D
 from keras.preprocessing import image
 import numpy as np
 from matplotlib import pyplot as plt
@@ -65,7 +66,21 @@ def replace_relu_with_softplus(model, scaler = 1.0):
 def cut_and_flatten(model, layer):
   """ Cut a submodel from the model up to layer 'layer', sum over inputs, full model is returned is layer = -1 """
   if layer == -1: return model
-  return Model(inputs = model.inputs, outputs = Dense(1, kernel_initializer = 'ones')(Flatten()(model.layers[layer].output)))
+  return Model(inputs = model.inputs, outputs = Dense(1, kernel_initializer = 'ones', activation = 'linear')(Flatten()(model.layers[layer].output)))
+
+def poolinput(model, pooling = 5):
+  """ Make input grayscale for the net """
+  # new (small) input
+  inp_shape = model.input.shape[1:]
+  d = inp_shape[0]
+  input_tensor = Input(shape = inp_shape)
+
+  x = input_tensor
+  x = AveragePooling2D(padding = 'same', pool_size = pooling, input_shape = inp_shape)(x)
+  x = Lambda(partial(tf.image.resize_images, size = (d, d)))(x)
+
+  model_gs = Model(inputs = input_tensor, outputs = model(x))
+  return model_gs
 
 def grayscale(model):
   """ Make input grayscale for the net """
@@ -154,6 +169,7 @@ def load_image(img_path, dimension = 224, axis = plt, color = False):
   """ Load an image """
   img = image.load_img(img_path, target_size=(dimension, dimension))
   x = image.img_to_array(img)
+  x = 255.0 * x / np.max(x)
   if not color:
     x = x.mean(axis = 2)
   axis.imshow(x, cmap = 'gray')
@@ -181,7 +197,7 @@ def compute_error_stack(exp, x, K, k):
 def experiment_mean_std(exp, x, repetitions):
   """ Compute experimental mean/std for input x using number of repetitions """
   result = {}
-  r = exp.compute_error(x, repetitions)
+  r = np.array(exp.compute_error(x, repetitions), dtype = np.float64)
   result['mean'] = np.mean(r, axis = 1)
   result['std']  = np.std (r, axis = 1)
   return result
