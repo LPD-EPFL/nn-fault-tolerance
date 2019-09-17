@@ -12,7 +12,7 @@ from keras.backend.tensorflow_backend import set_session
 def init_tf_keras():
   """ Initialize TensorFlow """
   config = tf.ConfigProto()
-  config.gpu_options.per_process_gpu_memory_fraction = 0.5
+  config.gpu_options.per_process_gpu_memory_fraction = 0.9
   config.gpu_options.allow_growth = True
   sess = tf.Session(config=config)
   set_session(sess)
