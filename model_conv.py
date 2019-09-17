@@ -1,4 +1,5 @@
 from model import *
+import tensorflow as tf
 from vis.utils.utils import apply_modifications
 from keras.activations import softplus
 from keras.utils import CustomObjectScope
@@ -13,6 +14,31 @@ def softplus10(x, scaler = 1.0):
     """ Softplus with variable softness """
     return softplus(x * scaler) / scaler
 
+# Identity activation function
+def identity(x): return x
+
+# custom activation functions
+custom_fcn = {'identity': identity, 'softplus10': softplus10}
+
+def remove_activation(model, layer):
+  """ For a given model, remove an activation """
+  print("Removing activation from layer %s" % str(model.layers[layer]))
+
+  # obtaining the layer object
+  layer = model.layers[layer]
+
+  # replacing ReLU with SoftPlus10
+  assert hasattr(layer, 'activation')
+  layer.activation = identity
+
+  # applying modifications
+  print('Applying modifications...')
+  with CustomObjectScope(custom_fcn):
+    model = apply_modifications(model)
+
+  # returning the resulting model
+  return model
+
 def replace_relu_with_softplus(model, scaler = 1.0):
   """ For a given keras model, replace all ReLU activation functions with softplus """
   print("Replacing ReLU to Softplus(%.2f)" % scaler)
@@ -26,7 +52,7 @@ def replace_relu_with_softplus(model, scaler = 1.0):
 
   # applying modifications
   print('Applying modifications...')
-  with CustomObjectScope({'softplus10': softplus10}):
+  with CustomObjectScope(custom_fcn):
     model = apply_modifications(model)
 
   # returning the resulting model
@@ -36,6 +62,22 @@ def cut_and_flatten(model, layer):
   """ Cut a submodel from the model up to layer 'layer', sum over inputs, full model is returned is layer = -1 """
   if layer == -1: return model
   return Model(inputs = model.inputs, outputs = Dense(1, kernel_initializer = 'ones')(Flatten()(model.layers[layer].output)))
+
+def grayscale(model):
+  """ Make input grayscale for the net """
+  # new (small) input
+  d = int(model.inputs[0].shape[1])
+  input_tensor = Input(shape = (d, d))
+
+  # new model taking small images and upscaling them
+  def grayscale_to_rgb(x):
+      """ NWH -> NWHC with 3 channels """
+      x = tf.expand_dims(x, 3)
+      x = tf.tile(x, multiples = [1,1,1,3])
+      return x
+  out = model(Lambda(grayscale_to_rgb)(input_tensor))
+  model_gs = Model(inputs = input_tensor, outputs = out)
+  return model_gs
 
 def upscale_from(model, d):
   """ Upscale image and then feed to the model as a new model """
@@ -83,15 +125,19 @@ def merge_with_taken(model, x_without_first, rc0 = 10):
 
   return model_upscale
 
-def load_cat(dimension = 224):
-  # getting picture of a cat
-  img_path = 'cat.jpg'
+def load_image(img_path, dimension = 224, axis = plt):
+  """ Load an image """
   img = image.load_img(img_path, target_size=(dimension, dimension))
-  plt.imshow(img)
   x = image.img_to_array(img)
+  x = x.mean(axis = 2)
+  axis.imshow(x, cmap = 'gray')
   x = np.expand_dims(x, axis=0)
   #x = preprocess_input(x)
   return x
+
+def load_cat(dimension = 224):
+  # getting picture of a cat
+  return load_image('cat.jpg', dimension)
 
 def SliceLayer(to_keep):
   """ Keep only these components in the layer """
