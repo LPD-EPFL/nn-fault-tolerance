@@ -172,7 +172,7 @@ def load_image(img_path, dimension = 224, axis = plt, color = False):
   x = 255.0 * x / np.max(x)
   if not color:
     x = x.mean(axis = 2)
-  axis.imshow(x, cmap = 'gray')
+  axis.imshow(x / 255., cmap = 'gray')
   x = np.expand_dims(x, axis=0)
   #x = preprocess_input(x)
   return x
