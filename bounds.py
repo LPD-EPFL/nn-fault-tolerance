@@ -96,15 +96,16 @@ def _get_bound_b3_loss(self, data, outputs, weights = None):
 
   @cache_graph(self)
   def get_graph():
-    return fault_tolerance_taylor_1st_term(loss, weights, np.max(self.p_inference))
+    return fault_tolerance_taylor_1st_term(tf.reshape(self.loss, (-1, 1)), weights, np.max(self.p_inference), no_n = True)
 
   return self.run_on_input_output(get_graph(), data, outputs)
 
-def fault_tolerance_taylor_1st_term(f_x, x, p):
+def fault_tolerance_taylor_1st_term(f_x, x, p, no_n = False):
     """ 
     Input: f_x: tensor of shape (-1, N)
-    x: tensor on which f_x depends on, shape (nBatch, other)
+    x: tensor on which f_x depends on, shape (nBatch, other); or (other, ) with no_n
     p: scalar, probability of failure
+    no_n: if true, do not ignore first dimension (N batch size)
     
     Returns
     mean: -df_x/dx * x * p
@@ -124,7 +125,7 @@ def fault_tolerance_taylor_1st_term(f_x, x, p):
         out = f_x[:, output_dim]
 
         # all but batch dimension
-        non_input_dims = list(range(1, len(x.shape)))
+        non_input_dims = list(range(0 if no_n else 1, len(x.shape)))
 
         # w.r.t. first layer output
         grad    += [tf.reduce_sum(          tf.multiply(tf.gradients([out], [x])[0], x), axis = non_input_dims)]
