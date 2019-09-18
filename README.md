@@ -4,7 +4,7 @@ Code for the paper "Probabilistic Fault Tolerance of Neuromorphic Networks"
 ### Installation
 To run a Jupyter notebook:
 1. Install miniconda https://conda.io/miniconda.html for Python 3.6.6
-2. Install requirements from requirements.txt
+2. Install requirements from environment.yml
 3. Activate Freeze nbextension to skip the computation cells automatically and just plot data from pickled results
 4. You can turn on cells which re-run the experiments, but do not enable _configuration_ cells which will just screw the initial conditions
 
