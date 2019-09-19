@@ -193,5 +193,4 @@ dependencies:
     - pywavelets==1.0.3
     - scikit-image==0.15.0
     - telegram-send==0.20
-prefix: /localhome/volodin/miniconda3
 
