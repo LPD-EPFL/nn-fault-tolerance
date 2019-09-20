@@ -185,6 +185,7 @@ dependencies:
     - colorama==0.4.1
     - findiff==0.6.3
     - future==0.17.1
+    - google-images-download==2.8.0
     - imageio==2.5.0
     - jupyter-tensorboard==0.1.10
     - keras-vis==0.4.1
@@ -192,5 +193,6 @@ dependencies:
     - python-telegram-bot==11.1.0
     - pywavelets==1.0.3
     - scikit-image==0.15.0
+    - selenium==3.141.0
     - telegram-send==0.20
 

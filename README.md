@@ -42,9 +42,9 @@ Code is written in Python 3 with Keras/TensorFlow and is documented.
 2. `WeightDecay-FC-MNIST.ipynb` shows that weights do not decay as we expect without regularization
 3. `DerivativeDecay-FC-MNIST.ipynb` shows that derivatives do not decay without regularization as we expect
 4. `WeightDecay-Continuity-FC-MNIST.ipynb` shows that with regularization, continuity holds (derivatives decay, weights stabilize)
-5. `ConvNetTest-VGG16-ManyImages.ipynb` investigates into filter size and how well b3 works in CNNs and tries to apply pooling on input for VGG
+5. `ConvNetTest-VGG16-ManyImages.ipynb` investigates into filter size and how well b3 works in CNNs and tries to apply pooling on input for VGG (uncomment a line to download images first)
 6. `ErrorAdditivityRandom.ipynb` is the test of error additivity on Boston dataset
-7. `ErrorComparisonBoston.ipynb` compares Boston-trained networks (see main paper)
+7. `ErrorComparisonBoston.ipynb` compares Boston-trained networks
 8. `ConvNetTest-MNIST.ipynb`, `ConvNetTest-VGG16.ipynb` test the b3 bound on larger networks
 9. `ErrorOnTraining.ipynb` tests the prediction of AP9 in the supplementary
 
