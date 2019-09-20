@@ -108,7 +108,7 @@ def IdentityLayer(input_shape=None):
 def IndependentCrashes(p_fail, input_shape = None):
   """ Make dropout work when using predict(), not only on train, without scaling """
   assert isinstance(p_fail, Number), "pfail must be a number"
-  return Lambda(lambda x: K.dropout(x, level=p_fail) * (1 - p_fail), input_shape = input_shape, name = 'Crashes')
+  return Lambda(lambda x: K.dropout(x, level=p_fail) * (1 - p_fail), input_shape = input_shape)#, name = 'Crashes')
 
 def get_custom_activation(KLips, func):
   """ Get custom sigmoid activation with given Lipschitz constant """
