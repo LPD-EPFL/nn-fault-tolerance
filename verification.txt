@@ -1,0 +1,16 @@
+OK R 1. `ComparisonIncreasingDropoutMNIST.ipynb` compares networks trained with different dropout on MNIST using bounds
+OK R 2. `Regularization.ipynb` regularizes networks with b3 variance bound to achieve fault tolerance
+OK 3. `ConvNetTest-MNIST.ipynb` trains a small convolutional network and verifies bound on it
+OK 4. `ConvNetTest-VGG16.ipynb` loads the pre-trained VGG model and verifies the bound on it
+OK 5. `ConvNetTest-ft.ipynb` compares fault tolerance of pre-trained CNN models
+OK 6. `FaultTolerance-Continuity-FC-MNIST.ipynb` shows a decay of VarDelta when n increases when using our regularizer (Eq. 1 main paper)
+OK 7. `TheAlgorithm.ipynb` tests Algorithm 1 on a small convnet for MNIST
+OK 1. `FilterPlayground.ipynb` allows to tune the smooth() coefficients online
+OK R 2. `WeightDecay-FC-MNIST.ipynb` shows that weights do not decay as we expect without regularization
+OK R 3. `DerivativeDecay-FC-MNIST.ipynb` shows that derivatives do not decay without regularization as we expect
+OK R 4. `WeightDecay-Continuity-FC-MNIST.ipynb` shows that with regularization, continuity holds (derivatives decay, weights stabilize)
+REDO with REG or DROP  DVD Boston
+OK FIXED 5. `ConvNetTest-VGG16-ManyImages.ipynb` investigates into filter size and how well b3 works in CNNs and tries to apply pooling on input for VGG
+OK FIXED 6. `ErrorAdditivityRandom.ipynb` is the test of error additivity on Boston dataset
+OK 7. `ErrorComparisonBoston.ipynb` compares Boston-trained networks (see main paper)
+OK 9. `ErrorOnTraining.ipynb` tests the prediction of AP9 in the supplementary
