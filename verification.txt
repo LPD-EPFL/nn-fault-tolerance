@@ -9,7 +9,6 @@ OK 1. `FilterPlayground.ipynb` allows to tune the smooth() coefficients online
 OK R 2. `WeightDecay-FC-MNIST.ipynb` shows that weights do not decay as we expect without regularization
 OK R 3. `DerivativeDecay-FC-MNIST.ipynb` shows that derivatives do not decay without regularization as we expect
 OK R 4. `WeightDecay-Continuity-FC-MNIST.ipynb` shows that with regularization, continuity holds (derivatives decay, weights stabilize)
-REDO with REG or DROP  DVD Boston
 OK FIXED 5. `ConvNetTest-VGG16-ManyImages.ipynb` investigates into filter size and how well b3 works in CNNs and tries to apply pooling on input for VGG
 OK FIXED 6. `ErrorAdditivityRandom.ipynb` is the test of error additivity on Boston dataset
 OK 7. `ErrorComparisonBoston.ipynb` compares Boston-trained networks (see main paper)
