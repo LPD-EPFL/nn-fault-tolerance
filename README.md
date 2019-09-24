@@ -8,7 +8,7 @@ To run a Jupyter notebook:
 3. Activate Freeze nbextension to skip the computation cells automatically and just plot data from pickled results
 4. You can turn on cells which re-run the experiments, but do not enable _configuration_ cells which will just screw the initial conditions
 
-All results are pickled so that the figures can be generated without running the computation again
+Most results are pickled so that the figures can be generated without running the computation again
 
 Tested on a 12CPU machine with 2xGPU NVIDIA GTX 1080 running Ubuntu 16.04.5 LTS
 
