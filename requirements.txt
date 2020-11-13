@@ -1,0 +1,8 @@
+jupyter==1.0.0
+jupyterlab==2.2.9
+pandas==1.1.4
+pip-chill==1.0.0
+tabulate==0.8.7
+tensorboardx==2.1
+tensorflow==2.3.1
+tqdm==4.51.0
