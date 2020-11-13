@@ -1,4 +1,5 @@
 downloads
+*.egg-info
 networks
 *.jpg
 code_submission.zip

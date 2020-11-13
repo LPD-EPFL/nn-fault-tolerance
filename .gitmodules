@@ -1,3 +1,6 @@
 [submodule "one-pixel-attack-keras"]
 	path = onepixel
 	url = https://github.com/Hyperparticle/one-pixel-attack-keras
+[submodule "gin_tune"]
+	path = gin_tune
+	url = git@github.com:sergeivolodin/gin_tune.git
