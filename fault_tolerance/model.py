@@ -10,6 +10,7 @@ from tensorflow import keras
 def init_tf_keras():
     gpu_devices = tf.config.experimental.list_physical_devices('GPU')
     for device in gpu_devices:
+        print("Enabling memory growth for GPU", device)
         tf.config.experimental.set_memory_growth(device, True)
 
 # to use only the memory that we need

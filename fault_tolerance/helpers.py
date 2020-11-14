@@ -6,12 +6,40 @@ import pandas as pd
 import pickle
 import gin
 import pkgutil
+import path
+
 
 # calculate first norm
 norm1 = partial(np.linalg.norm, ord = 1)
 
 # calculate second norm
 norm2 = partial(np.linalg.norm, ord = 2)
+
+@gin.configurable
+class np_random_seed(object):
+    """Run stuff with a fixed random seed."""
+
+    # https://stackoverflow.com/questions/32172054/how-can-i-retrieve-the-current-seed-of-numpys-random-number-generator
+    def __init__(self, seed=42):
+        self.seed = seed
+        self.st0 = None
+
+    def __enter__(self):
+        self.st0 = np.random.get_state()
+        np.random.seed(self.seed)
+
+    def __exit__(self, type_, value, traceback):
+        np.random.set_state(self.st0)
+
+def get_config_path(filename):
+    """Get path to configs."""
+    path = resource_filename('fault_tolerance', f"config/{filename}")
+    return os.path.dirname(path)
+
+def load_gin_config(file):
+    """Load gin configuration."""
+    with path.Path(get_config_path()):
+        gin.parse_config(get_gin_config(file))
 
 def get_gin_config(filename):
     """Get gin config file contents from a file in config."""
