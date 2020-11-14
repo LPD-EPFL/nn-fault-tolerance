@@ -1,0 +1,35 @@
+import fault_tolerance.ntk.lecun_init
+import fault_tolerance.ntk.ntk_experiment
+import fault_tolerance.experiment
+import fault_tolerance.run
+import fault_tolerance.helpers
+import gin_tune
+
+
+lecun_ntk_wb.n_hid_layers = 5
+lecun_ntk_wb.n_units = 50
+tune_gin.func = @ntk_experiment
+
+N/attr.d = @lecun_ntk_wb()
+N/attr.k = "N"
+
+W/attr.d = @lecun_ntk_wb()
+W/attr.k = "W"
+
+B/attr.d = @lecun_ntk_wb()
+B/attr.k = "B"
+
+Experiment.N = @N/attr()
+Experiment.W = @W/attr()
+Experiment.B = @B/attr()
+
+random_p_fail.N = @N/attr()
+
+plevel/uniform.lower = 0
+plevel/uniform.upper = 1
+random_p_fail.p_level = @plevel/uniform()
+Experiment.p_inference = @random_p_fail()
+
+ntk_experiment.n_inputs = 1000
+ntk_experiment.n_inits = 10
+ntk_experiment.repetitions = 1000
