@@ -1,18 +1,17 @@
-from helpers import *
-from model import *
+from fault_tolerance.helpers import *
+from fault_tolerance.model import *
 import numpy as np
 from tqdm import tqdm
 from matplotlib import pyplot as plt
 from scipy.special import expit
-
-# for obtaining current TF session
-from keras.backend.tensorflow_backend import get_session
+import gin
 
 # importing other parts of the class
-import bad_input_search, bounds, process_data
+from fault_tolerance import bounds, process_data
 
 # adding other parts of the class
-@add_methods_from(bad_input_search, bounds, process_data)
+@add_methods_from(bounds, process_data)
+@gin.configurable
 class Experiment():
   """ One experiment on neuron crash, contains a fixed weights network """
   def __init__(self, N, W, B, p_inference, KLips = 1, activation = 'sigmoid', do_print = False, name = 'exp', check_shape = True):

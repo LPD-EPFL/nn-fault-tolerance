@@ -1,4 +1,4 @@
-from helpers import *
+from fault_tolerance.helpers import *
 import numpy as np
 from tqdm import tqdm
 import matplotlib

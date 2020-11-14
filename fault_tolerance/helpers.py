@@ -4,12 +4,25 @@ import sys
 from functools import partial
 import pandas as pd
 import pickle
+import gin
+import pkgutil
 
 # calculate first norm
 norm1 = partial(np.linalg.norm, ord = 1)
 
 # calculate second norm
 norm2 = partial(np.linalg.norm, ord = 2)
+
+def get_gin_config(filename):
+    """Get gin config file contents from a file in config."""
+    assert filename.endswith(".gin"), f"Only support gin files: {filename}"
+    data = pkgutil.get_data('fault_tolerance', f"config/{filename}").decode('utf-8')
+    return data
+
+@gin.configurable
+def attr(d, k):
+    """Get an item from a dictionary"""
+    return d[k]
 
 def dot_abs(x, y):
   """ Dot product between absolute values of vectors x, y """

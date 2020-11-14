@@ -1,14 +1,12 @@
-from helpers import *
-from model import *
+from fault_tolerance.helpers import *
+from fault_tolerance.model import *
 import numpy as np
+
 from tqdm import tqdm
 from matplotlib import pyplot as plt
 from scipy.special import expit
 import sys
 from inspect import signature
-
-# for obtaining current TF session
-from keras.backend.tensorflow_backend import get_session
 
 # for adding functions to Experiment class
 __methods__ = []
@@ -58,34 +56,6 @@ def check_p_layer0(self):
   assert all([p == 0 or i == 1 for i, p in enumerate(self.p_inference)]), "Must have failures only at first layer, other options are not implemented yet"
 
 @register_method
-def run_on_input(self, tensors, data):
-  """ Run dict of tensors on input data """
-  self.check_input_shape(data)
-
-  # list of all keys, fixed order
-  keys = list(tensors.keys())
-
-  # running for all keys
-  results = get_session().run([tensors[key] for key in keys], feed_dict = {self.model_correct.layers[0].input.name: data})
-
-  # returning the result
-  return {key: val for key, val in zip(keys, results)}
-
-@register_method
-def run_on_input_output(self, tensors, data, y):
-  """ Run dict of tensors on input data """
-  self.check_input_shape(data)
-
-  # list of all keys, fixed order
-  keys = list(tensors.keys())
-
-  # running for all keys
-  results = get_session().run([tensors[key] for key in keys], feed_dict = {self.model_correct.layers[0].input.name: data, self.output_tensor: y})
-
-  # returning the result
-  return {key: val for key, val in zip(keys, results)}
-
-@register_method
 def _get_bound_b3_loss(self, data, outputs, weights = None):
   """ Exact error up to O(p^2x_i^2), assumes infinite width and small p """
 
@@ -95,6 +65,7 @@ def _get_bound_b3_loss(self, data, outputs, weights = None):
     self.check_p_layer0()
 
   @cache_graph(self)
+  @tf.function
   def get_graph():
     return fault_tolerance_taylor_1st_term(tf.reshape(self.loss, (-1, 1)), weights, np.max(self.p_inference), no_n = True)
 

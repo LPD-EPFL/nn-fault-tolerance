@@ -1,42 +1,34 @@
 # for environ
 import os
 
-# only using device 0
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"   # see issue #152
-#os.environ["CUDA_VISIBLE_DEVICES"]="0"
 
 # importing tensorflow
 import tensorflow as tf
-from keras.backend.tensorflow_backend import set_session
+from tensorflow import keras
 
 def init_tf_keras():
-  """ Initialize TensorFlow """
-  config = tf.ConfigProto()
-  config.gpu_options.per_process_gpu_memory_fraction = 0.9
-  config.gpu_options.allow_growth = True
-  sess = tf.Session(config=config)
-  set_session(sess)
-  print("Initialized TensorFlow")
+    gpu_devices = tf.config.experimental.list_physical_devices('GPU')
+    for device in gpu_devices:
+        tf.config.experimental.set_memory_growth(device, True)
 
 # to use only the memory that we need
 init_tf_keras()
 
 # standard imports
 import numpy as np
-import keras
-from bounds import fault_tolerance_taylor_1st_term
-from keras import backend as K
-from keras.models import Sequential
-from keras.layers import Dense
-from keras.layers.core import Lambda
-from keras.initializers import Constant
-from keras.regularizers import l1, l2
-from keras.constraints import max_norm
+from fault_tolerance.bounds import fault_tolerance_taylor_1st_term
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense
+from tensorflow.keras.layers import Lambda
+from tensorflow.keras.initializers import Constant
+from tensorflow.keras.regularizers import l1, l2
+from tensorflow.keras.constraints import max_norm
 from numbers import Number
-from helpers import *
-from keras import Model, Input
+from fault_tolerance.helpers import *
+from tensorflow.keras import Model, Input
 import scipy.stats as st
-from continuity import smoothness_scale_free
+from fault_tolerance.continuity import smoothness_scale_free
 
 class Continuous(keras.regularizers.Regularizer):
     """ Regularizer penalizing for weights being too different for neurons. Specifically, 
@@ -79,7 +71,7 @@ class Balanced(keras.regularizers.Regularizer):
 
     def __init__(self, mu = 0.0, eps = 1e-5):
         # just saving the parameters as floats
-        self.mu = K.cast_to_floatx(mu)
+        self.mu = tf.cast(mu, dtype=tf.keras.backend.floatx)
         self.eps = K.cast_to_floatx(eps)
 
     def __call__(self, x):
@@ -108,16 +100,16 @@ def IdentityLayer(input_shape=None):
 def IndependentCrashes(p_fail, input_shape = None):
   """ Make dropout work when using predict(), not only on train, without scaling """
   assert isinstance(p_fail, Number), "pfail must be a number"
-  return Lambda(lambda x: K.dropout(x, level=p_fail) * (1 - p_fail), input_shape = input_shape)#, name = 'Crashes')
+  return Lambda(lambda x: tf.keras.layers.Dropout(rate=p_fail)(x, training=True) * (1 - p_fail), input_shape = input_shape)#, name = 'Crashes')
 
 def get_custom_activation(KLips, func):
   """ Get custom sigmoid activation with given Lipschitz constant """
   assert isinstance(KLips, Number), "KLips must be a number"
   def custom_activation(x):
     if func == 'sigmoid':
-        return K.sigmoid(4 * KLips * x)
+        return tf.keras.activations.sigmoid(4 * KLips * x)
     elif func == 'relu':
-        return K.relu(KLips * x)
+        return tf.keras.activations.relu(KLips * x)
     else: raise NotImplementedError("Activation function %s is not supported" % str(func))
   return custom_activation
 
