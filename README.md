@@ -2,6 +2,8 @@
 Code for the paper "Probabilistic Fault Tolerance of Neural Networks in the Continuous Limit"
 
 ### Installation
+[![Build Status](https://travis-ci.org/LPD-EPFL/nn-fault-tolerance.svg?branch=master)](https://travis-ci.org/LPD-EPFL/nn-fault-tolerance)
+
 To run a Jupyter notebook:
 1. Install miniconda https://conda.io/miniconda.html for Python 3.7.3
 2. Install requirements from environment.yml
