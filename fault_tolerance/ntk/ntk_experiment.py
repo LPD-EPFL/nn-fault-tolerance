@@ -4,12 +4,15 @@ import numpy as np
 from ray import tune
 import tensorflow as tf
 from fault_tolerance.helpers import np_random_seed
+import logging
 
 
 @gin.configurable
 def ntk_experiment(config=None, checkpoint_dir=None, n_inputs=100, n_inits=100, repetitions=1000,
                    input_chunk_size=50):
     """Compute error in LeCun/NTK initialization empirically."""
+    
+    logging.basicConfig(level=logging.INFO)
     
     n_chunks = max(1, n_inputs // input_chunk_size)
     n_inputs = input_chunk_size * n_chunks

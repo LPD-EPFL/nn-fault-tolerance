@@ -26,7 +26,11 @@ Experiment.N = @N/attr()
 Experiment.W = @W/attr()
 Experiment.B = @B/attr()
 
-random_p_fail.N = @N/attr()
+N_len/length.x = @N/attr()
+random_p_fail.N_len = @N_len/length()
+lfail/gin_eval.s = "lambda spec: np.random.choice(2 + spec.config._gin__nhid__choice)"
+lfail/sample_from.func = @lfail/gin_eval()
+random_p_fail.idx = @lfail/sample_from()
 
 plevel/uniform.lower = 0
 plevel/uniform.upper = 1
@@ -39,6 +43,7 @@ ntk_experiment.repetitions = 1000
 
 tune_run.resources_per_trial = {'gpu': 0.3, 'cpu': 3}
 tune_run.num_samples = 50
+tune_run.name = "ntk_error"
 gin_tune_config.log_sys_usage = True
 
 np_random_seed.seed = 42

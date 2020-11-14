@@ -2,10 +2,9 @@ import gin
 import numpy as np
 
 @gin.configurable
-def random_p_fail(N, p_level):
+def random_p_fail(N_len, idx, p_level):
     """Failures at a random layer."""
-    idx = np.random.choice(range(len(N)))
-    out = [0] * len(N)
+    out = [0] * N_len
     out[idx] = p_level
     return out
 

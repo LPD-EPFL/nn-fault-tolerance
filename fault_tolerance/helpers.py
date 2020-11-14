@@ -16,6 +16,20 @@ norm1 = partial(np.linalg.norm, ord = 1)
 norm2 = partial(np.linalg.norm, ord = 2)
 
 @gin.configurable
+def gin_eval(s):
+    """Gin-eval."""
+    return eval(s)
+
+@gin.configurable
+def length(x):
+    """Gin-configurable len()."""
+    return len(x)
+
+@gin.configurable
+def gin_range(M):
+    return range(M)
+
+@gin.configurable
 class np_random_seed(object):
     """Run stuff with a fixed random seed."""
 
