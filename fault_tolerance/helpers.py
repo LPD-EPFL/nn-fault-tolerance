@@ -7,6 +7,8 @@ import pickle
 import gin
 import pkgutil
 import path
+from pkg_resources import resource_filename
+import os
 
 
 # calculate first norm
@@ -52,7 +54,7 @@ def get_config_path(filename):
 
 def load_gin_config(file):
     """Load gin configuration."""
-    with path.Path(get_config_path()):
+    with path.Path(get_config_path(file)):
         gin.parse_config(get_gin_config(file))
 
 def get_gin_config(filename):

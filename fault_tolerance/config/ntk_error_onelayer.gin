@@ -1,0 +1,20 @@
+import fault_tolerance.ntk.lecun_init
+import fault_tolerance.ntk.ntk_experiment
+import fault_tolerance.experiment
+import fault_tolerance.run
+import fault_tolerance.helpers
+import gin_tune
+include 'ntk_error.gin'
+
+
+nunits/choice.categories = [1, 5, 10, 15, 30, 50, 100, 200, 500, 1000, 2000, 5000, 10000]
+random_p_fail.p_level = 0.5
+
+ntk_experiment.n_inputs = 10
+ntk_experiment.n_inits = 100
+ntk_experiment.repetitions = 1000
+ntk_experiment.input_chunk_size = 10
+
+tune_run.num_samples = 500
+tune_run.name = "ntk_error_onelayer"
+tune_run.resources_per_trial = {'gpu': 0.1, 'cpu': 2}

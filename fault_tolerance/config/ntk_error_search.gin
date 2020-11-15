@@ -1,0 +1,17 @@
+import fault_tolerance.ntk.lecun_init
+import fault_tolerance.ntk.ntk_experiment
+import fault_tolerance.experiment
+import fault_tolerance.run
+import fault_tolerance.helpers
+import gin_tune
+include 'ntk_error.gin'
+
+nunits/choice.categories = [1, 5, 10, 100, 500, 1000, 5000, 10000]
+lecun_ntk_wb.n_units = @nunits/choice()
+
+ntk_experiment.n_inputs = 100
+ntk_experiment.n_inits = 100
+ntk_experiment.repetitions = 1000
+
+tune_run.num_samples = 50
+tune_run.name = "ntk_error_onelayer"

@@ -1,7 +1,7 @@
 import argparse
 import gin
 from gin_tune import tune_gin
-from fault_tolerance.helpers import get_gin_config
+from fault_tolerance.helpers import load_gin_config
 import ray
 import logging
 
@@ -17,5 +17,5 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     args = parser.parse_args()
     ray.init(num_cpus=args.n_cpus, num_gpus=args.n_gpus)
-    gin.parse_config(get_gin_config(args.config))
+    load_gin_config(args.config)
     tune_gin()

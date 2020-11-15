@@ -6,11 +6,8 @@ import fault_tolerance.helpers
 import gin_tune
 
 
-nhid/choice.categories = [0, 1, 2, 3, 4, 5, 6]
-lecun_ntk_wb.n_hid_layers = @nhid/choice()
-
-nunits/choice.categories = [1, 5, 10, 15, 30, 50, 100, 200, 500]
-lecun_ntk_wb.n_units = @nunits/choice()
+lecun_ntk_wb.n_hid_layers = 1
+lecun_ntk_wb.n_units = 5
 tune_gin.func = @ntk_experiment
 
 N/attr.d = @lecun_ntk_wb()
@@ -28,13 +25,9 @@ Experiment.B = @B/attr()
 
 N_len/length.x = @N/attr()
 random_p_fail.N_len = @N_len/length()
-lfail/gin_eval.s = "lambda spec: np.random.choice(2 + spec.config._gin__nhid__choice)"
-lfail/sample_from.func = @lfail/gin_eval()
-random_p_fail.idx = @lfail/sample_from()
+random_p_fail.idx = 1
 
-plevel/uniform.lower = 0
-plevel/uniform.upper = 1
-random_p_fail.p_level = @plevel/uniform()
+random_p_fail.p_level = 0.5
 Experiment.p_inference = @random_p_fail()
 
 ntk_experiment.n_inputs = 100
@@ -42,8 +35,8 @@ ntk_experiment.n_inits = 100
 ntk_experiment.repetitions = 1000
 
 tune_run.resources_per_trial = {'gpu': 0.3, 'cpu': 3}
-tune_run.num_samples = 50
-tune_run.name = "ntk_error"
+tune_run.num_samples = 1
+tune_run.name = "ntk_error_base"
 gin_tune_config.log_sys_usage = True
 
 np_random_seed.seed = 42
